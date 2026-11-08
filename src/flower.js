@@ -428,10 +428,11 @@ const STAR_VERTEX = /* glsl */ `
 
   void main() {
     vec3 pos = position;
-    // A slow, almost imperceptible drift keeps the sky alive without
-    // looking like a spinning skybox.
-    pos.x += sin(uTime * 0.035 + aPhase * 21.0) * 0.55;
-    pos.y += sin(uTime * 0.12 + aPhase * 6.28) * 0.1;
+    // Each star drifts on its own slow orbit, so the whole sky breathes
+    // without ever looking like a rotating skybox.
+    pos.x += sin(uTime * 0.14 + aPhase * 27.0) * (0.3 + aPhase * 1.0);
+    pos.y += sin(uTime * 0.1 + aPhase * 13.0) * (0.1 + aPhase * 0.35);
+    pos.z += cos(uTime * 0.07 + aPhase * 9.0) * 0.22;
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     gl_PointSize = clamp(
       aSize * uPixelRatio * (1.0 + sin(uTime * 0.7 + aPhase * 9.0) * 0.35),
@@ -740,6 +741,8 @@ export class BloomScene {
     this._nextMeteorAt = 2.5 + Math.random() * 3.5;
     this._meteorPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 6);
     this._meteorNdc = new THREE.Vector2();
+    this._meteorA = new THREE.Vector3();
+    this._meteorB = new THREE.Vector3();
 
     const geometry = createPetalGeometry(this.quality);
     this.petalMaterial = new THREE.ShaderMaterial({
@@ -1083,10 +1086,13 @@ export class BloomScene {
     if (!this._meteorTexture) return;
 
     this.camera.updateMatrixWorld(true);
-    const startNdcX = 0.3 + Math.random() * 0.72;
-    const startNdcY = 0.72 + Math.random() * 0.26;
-    const endNdcX = startNdcX - 0.95 - Math.random() * 0.35;
-    const endNdcY = startNdcY - 0.24 - Math.random() * 0.24;
+    const fireball = Math.random() < 0.12;
+    const startNdcX = 0.12 + Math.random() * 0.82;
+    const startNdcY = 0.56 + Math.random() * 0.42;
+    const screenAngle = -(0.38 + Math.random() * 0.72);
+    const travel = (0.85 + Math.random() * 0.5) * (fireball ? 1.1 : 1);
+    const endNdcX = startNdcX - Math.cos(screenAngle) * travel;
+    const endNdcY = startNdcY + Math.sin(screenAngle) * travel;
 
     const start = this._worldOnMeteorPlane(
       startNdcX,
@@ -1099,55 +1105,129 @@ export class BloomScene {
       new THREE.Vector3(),
     );
     const dir = end.sub(start).normalize();
-    const length = 3.0 + Math.random() * 1.4;
+    const length =
+      (fireball ? 4.2 : 2.4) + Math.random() * (fireball ? 1.6 : 1.1);
+    const baseOpacity = fireball ? 1 : 0.82 + Math.random() * 0.18;
 
-    const material = new THREE.SpriteMaterial({
+    const coreMaterial = new THREE.SpriteMaterial({
       map: this._meteorTexture,
-      color: 0xe2dcff,
+      color: fireball ? 0xfff0d6 : 0xffffff,
       transparent: true,
       opacity: 0,
       depthWrite: false,
       depthTest: true,
       blending: THREE.AdditiveBlending,
-      rotation: Math.atan2(endNdcY - startNdcY, endNdcX - startNdcX),
     });
-    const sprite = new THREE.Sprite(material);
-    sprite.position.copy(start);
-    sprite.scale.set(length, length * 0.15, 1);
-    sprite.renderOrder = 1;
-    this.scene.add(sprite);
+    const glowMaterial = new THREE.SpriteMaterial({
+      map: this._meteorTexture,
+      color: fireball ? 0xff9d78 : 0x9f8dff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: true,
+      blending: THREE.AdditiveBlending,
+    });
+    const headMaterial = new THREE.SpriteMaterial({
+      map: this._sparkleTexture,
+      color: fireball ? 0xffe3c4 : 0xffffff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: true,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const group = new THREE.Group();
+    group.position.copy(start);
+
+    const core = new THREE.Sprite(coreMaterial);
+    core.scale.set(length, length * 0.11, 1);
+    core.renderOrder = 2;
+
+    const glow = new THREE.Sprite(glowMaterial);
+    glow.scale.set(length * 1.25, length * 0.34, 1);
+    glow.renderOrder = 1;
+
+    const head = new THREE.Sprite(headMaterial);
+    const headScale = (fireball ? 0.5 : 0.2) + Math.random() * 0.16;
+    head.scale.setScalar(headScale);
+    head.renderOrder = 3;
+
+    group.add(core, glow, head);
+    this.scene.add(group);
 
     this.meteors.push({
-      sprite,
+      group,
+      core,
+      glow,
+      head,
+      headScale,
       dir,
+      length,
       age: 0,
-      life: 1.5 + Math.random() * 0.6,
-      speed: 4.2 + Math.random() * 1.9,
-      base: 0.85 + Math.random() * 0.15,
+      life: (fireball ? 2.2 : 1.4) + Math.random() * 0.7,
+      speed: (fireball ? 3.6 : 4.6) + Math.random() * 1.8,
+      accel: 0.9 + Math.random() * 1.4,
+      gravity: 0.28 + Math.random() * 0.42,
+      base: baseOpacity,
+      phase: Math.random() * Math.PI * 2,
+      fireball,
     });
   }
 
   _updateMeteors(dt, time) {
     if (time >= this._nextMeteorAt) {
       this.spawnMeteor();
-      if (Math.random() < 0.28) this.spawnMeteor();
-      this._nextMeteorAt = time + 8 + Math.random() * 11;
+      if (Math.random() < 0.24) this.spawnMeteor();
+      this._nextMeteorAt = time + 9 + Math.random() * 12;
     }
 
     for (let i = this.meteors.length - 1; i >= 0; i -= 1) {
       const meteor = this.meteors[i];
       meteor.age += dt;
-      meteor.sprite.position.addScaledVector(meteor.dir, meteor.speed * dt);
+      meteor.speed += meteor.accel * dt;
+
+      // A slight gravity bend keeps the flight path from feeling like a
+      // perfectly straight laser; the tail is re-aimed every frame.
+      meteor.dir.y -= meteor.gravity * dt;
+      meteor.dir.normalize();
+      meteor.group.position.addScaledVector(meteor.dir, meteor.speed * dt);
+
+      const p0 = this._meteorA.copy(meteor.group.position).project(this.camera);
+      const p1 = this._meteorB
+        .copy(meteor.group.position)
+        .add(meteor.dir)
+        .project(this.camera);
+      const angle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+      meteor.core.material.rotation = angle;
+      meteor.glow.material.rotation = angle;
+
+      meteor.head.position
+        .copy(meteor.dir)
+        .multiplyScalar(meteor.length * 0.42);
 
       const t = meteor.age / meteor.life;
-      const fadeIn = Math.min(1, t / 0.12);
-      const fadeOut = 1 - Math.max(0, (t - 0.55) / 0.45);
-      meteor.sprite.material.opacity =
-        meteor.base * Math.max(0, Math.min(fadeIn, fadeOut));
+      const fadeIn = smoothstep(0, 0.1, t);
+      const fadeOut = 1 - smoothstep(0.62, 1, t);
+      const fade = Math.max(0, fadeIn * fadeOut);
+      const flicker = 0.9 + 0.1 * Math.sin(time * 38 + meteor.phase);
+
+      meteor.core.material.opacity = meteor.base * fade * flicker;
+      meteor.glow.material.opacity = meteor.base * 0.32 * fade;
+      meteor.head.material.opacity = meteor.base * 0.72 * fade * flicker;
+
+      const stretch = 0.82 + t * 0.32;
+      meteor.core.scale.x = meteor.length * stretch;
+      meteor.glow.scale.x = meteor.length * 1.25 * stretch;
+      meteor.head.scale.setScalar(
+        meteor.headScale * (0.92 + 0.1 * Math.sin(time * 17 + meteor.phase)),
+      );
 
       if (t >= 1) {
-        this.scene.remove(meteor.sprite);
-        meteor.sprite.material.dispose();
+        this.scene.remove(meteor.group);
+        meteor.core.material.dispose();
+        meteor.glow.material.dispose();
+        meteor.head.material.dispose();
         this.meteors.splice(i, 1);
       }
     }
@@ -1312,7 +1392,12 @@ export class BloomScene {
     this._sparkleTexture.dispose();
     this._meteorTexture.dispose();
     for (const sparkle of this.sparkles) sparkle.sprite.material.dispose();
-    for (const meteor of this.meteors) meteor.sprite.material.dispose();
+    for (const meteor of this.meteors) {
+      this.scene.remove(meteor.group);
+      meteor.core.material.dispose();
+      meteor.glow.material.dispose();
+      meteor.head.material.dispose();
+    }
     this.composer.dispose();
     this.renderer.dispose();
   }

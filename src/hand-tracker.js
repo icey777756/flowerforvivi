@@ -225,6 +225,8 @@ export class HandTracker {
     this._raf = 0;
     this._sending = false;
     this._openSmooth = null;
+    this._smoothedLandmarks = null;
+    this._state = null;
     this._lastSeenAt = 0;
     this._lastAnalysis = null;
     this._lastFrameAt = 0;
@@ -250,8 +252,10 @@ export class HandTracker {
       // The lite model is ~2.6x smaller and noticeably faster on phones; the
       // gesture score comes from geometry, so accuracy stays comfortable.
       modelComplexity: IS_COMPACT ? 0 : 1,
-      minDetectionConfidence: IS_COMPACT ? 0.66 : 0.62,
-      minTrackingConfidence: IS_COMPACT ? 0.64 : 0.62,
+      // Lower confidence + landmark smoothing keeps the hand from flickering
+      // out every few frames on phone cameras.
+      minDetectionConfidence: IS_COMPACT ? 0.55 : 0.6,
+      minTrackingConfidence: IS_COMPACT ? 0.55 : 0.6,
       selfieMode: false,
     });
     this.hands.onResults((results) => this._handleResults(results));
@@ -306,6 +310,8 @@ export class HandTracker {
       this.running = true;
       this.starting = false;
       this._openSmooth = null;
+      this._smoothedLandmarks = null;
+      this._state = null;
       this._consecutiveErrors = 0;
       this._lastFrameAt = performance.now();
       this.onStatus({
@@ -369,6 +375,50 @@ export class HandTracker {
     this._raf = requestAnimationFrame(tick);
   }
 
+  _smoothLandmarks(landmarks, dt) {
+    if (
+      !this._smoothedLandmarks ||
+      this._smoothedLandmarks.length !== landmarks.length
+    ) {
+      this._smoothedLandmarks = landmarks.map((point) => ({
+        x: point.x,
+        y: point.y,
+        z: point.z || 0,
+      }));
+      return this._smoothedLandmarks;
+    }
+
+    const alpha = 1 - Math.exp(-dt * 18);
+    const smoothed = this._smoothedLandmarks;
+    for (let i = 0; i < landmarks.length; i += 1) {
+      const point = landmarks[i];
+      const target = smoothed[i];
+      target.x += (point.x - target.x) * alpha;
+      target.y += (point.y - target.y) * alpha;
+      target.z += ((point.z || 0) - target.z) * alpha;
+    }
+    return smoothed;
+  }
+
+  _classify(openness) {
+    // Hysteresis: a hand sitting near a threshold must move clearly past it
+    // before the state flips, which stops the HUD and the bloom from strobing.
+    if (this._state === "open") {
+      if (openness < 0.54) {
+        this._state = openness < 0.28 ? "fist" : "half";
+      }
+    } else if (this._state === "fist") {
+      if (openness > 0.34) {
+        this._state = openness > 0.62 ? "open" : "half";
+      }
+    } else {
+      if (openness < 0.22) this._state = "fist";
+      else if (openness > 0.68) this._state = "open";
+      else this._state = "half";
+    }
+    return this._state;
+  }
+
   _handleResults(results) {
     if (!this.running) return;
 
@@ -381,8 +431,12 @@ export class HandTracker {
     this._handedness = handedness;
 
     if (!landmarks) {
-      if (now - this._lastSeenAt > 180) {
+      // Hold the last pose for ~300ms so one missed frame does not tear down
+      // the hand state and make the flower snap.
+      if (now - this._lastSeenAt > 300) {
         this._openSmooth = null;
+        this._smoothedLandmarks = null;
+        this._state = null;
         this._lastAnalysis = null;
         this.onResults({ landmarks: null, gesture: null, handedness: null });
       }
@@ -390,8 +444,9 @@ export class HandTracker {
     }
 
     this._lastSeenAt = now;
+    const smoothedLandmarks = this._smoothLandmarks(landmarks, dt);
     const analyzed = analyzeHand(
-      landmarks,
+      smoothedLandmarks,
       (this.video?.videoWidth || 16) / (this.video?.videoHeight || 9),
     );
     if (!analyzed) return;
@@ -399,7 +454,7 @@ export class HandTracker {
     if (this._openSmooth === null) {
       this._openSmooth = analyzed.openness;
     } else {
-      const response = analyzed.openness > this._openSmooth ? 13 : 8.5;
+      const response = analyzed.openness > this._openSmooth ? 10 : 7;
       this._openSmooth +=
         (analyzed.openness - this._openSmooth) *
         (1 - Math.exp(-dt * response));
@@ -407,14 +462,11 @@ export class HandTracker {
 
     analyzed.rawOpenness = analyzed.openness;
     analyzed.openness = this._openSmooth;
-
-    if (analyzed.openness < 0.24) analyzed.state = "fist";
-    else if (analyzed.openness > 0.62) analyzed.state = "open";
-    else analyzed.state = "half";
+    analyzed.state = this._classify(analyzed.openness);
 
     this._lastAnalysis = analyzed;
     this.onResults({
-      landmarks,
+      landmarks: smoothedLandmarks,
       gesture: analyzed,
       handedness,
     });
@@ -443,6 +495,8 @@ export class HandTracker {
     this._sending = false;
     this._lastAnalysis = null;
     this._openSmooth = null;
+    this._smoothedLandmarks = null;
+    this._state = null;
     this.stopStream();
     if (this.hands) this.hands.reset();
     this.onStatus({ type: "stopped", message: "摄像头已关闭" });

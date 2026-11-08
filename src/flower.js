@@ -419,10 +419,12 @@ const PETAL_FRAGMENT = /* glsl */ `
 const STAR_VERTEX = /* glsl */ `
   uniform float uTime;
   uniform float uPixelRatio;
+  uniform float uBloom;
   attribute float aSize;
   attribute float aPhase;
   attribute float aBright;
   attribute float aTwinkle;
+  attribute float aSpread;
   attribute vec3 aColor;
 
   varying vec3 vColor;
@@ -435,6 +437,12 @@ const STAR_VERTEX = /* glsl */ `
     pos.x += sin(uTime * 0.14 + aPhase * 27.0) * (0.3 + aPhase * 1.0);
     pos.y += sin(uTime * 0.1 + aPhase * 13.0) * (0.1 + aPhase * 0.35);
     pos.z += cos(uTime * 0.07 + aPhase * 9.0) * 0.22;
+
+    // When the bloom opens, the surrounding stardust drifts outward with it.
+    float spread = uBloom * aSpread;
+    float planar = max(length(pos.xz), 0.0001);
+    pos.xz += (pos.xz / planar) * spread;
+    pos.y += sign(pos.y + 0.0001) * spread * 0.32;
 
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
     float twinkle =
@@ -522,6 +530,7 @@ function createStarfield() {
   const phases = new Float32Array(count);
   const brights = new Float32Array(count);
   const twinkles = new Float32Array(count);
+  const spreads = new Float32Array(count);
   const palette = [
     new THREE.Color("#fff6e8"),
     new THREE.Color("#ffd9c4"),
@@ -555,6 +564,7 @@ function createStarfield() {
     brights[i] =
       (0.26 + Math.pow(rng(), 1.15) * 0.74) * (1.05 - depth * 0.28);
     twinkles[i] = 0.15 + rng() * 0.95;
+    spreads[i] = 0.2 + rng() * 0.9;
     phases[i] = rng();
   }
 
@@ -565,11 +575,13 @@ function createStarfield() {
   geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
   geometry.setAttribute("aBright", new THREE.BufferAttribute(brights, 1));
   geometry.setAttribute("aTwinkle", new THREE.BufferAttribute(twinkles, 1));
+  geometry.setAttribute("aSpread", new THREE.BufferAttribute(spreads, 1));
 
   const material = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
       uPixelRatio: { value: 1 },
+      uBloom: { value: 0 },
     },
     vertexShader: STAR_VERTEX,
     fragmentShader: STAR_FRAGMENT,
@@ -854,6 +866,7 @@ export class BloomScene {
     const phases = new Float32Array(count);
     const brights = new Float32Array(count);
     const twinkles = new Float32Array(count);
+    const spreads = new Float32Array(count);
     const palette = [
       new THREE.Color("#fff8ef"),
       new THREE.Color("#e9dcff"),
@@ -890,6 +903,7 @@ export class BloomScene {
       sizes[i] = (0.6 + Math.pow(rng(), 2.1) * 4.3) * (0.9 + (ndcY + 1) * 0.08);
       brights[i] = 0.32 + Math.pow(rng(), 1.1) * 0.68;
       twinkles[i] = 0.15 + rng() * 0.9;
+      spreads[i] = 0.15 + rng() * 0.75;
       phases[i] = rng();
     }
 
@@ -900,11 +914,13 @@ export class BloomScene {
     geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
     geometry.setAttribute("aBright", new THREE.BufferAttribute(brights, 1));
     geometry.setAttribute("aTwinkle", new THREE.BufferAttribute(twinkles, 1));
+    geometry.setAttribute("aSpread", new THREE.BufferAttribute(spreads, 1));
 
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: 1 },
+        uBloom: { value: 0 },
       },
       vertexShader: STAR_VERTEX,
       fragmentShader: STAR_FRAGMENT,
@@ -945,6 +961,7 @@ export class BloomScene {
     const phases = new Float32Array(count);
     const brights = new Float32Array(count);
     const twinkles = new Float32Array(count);
+    const spreads = new Float32Array(count);
     const palette = [
       new THREE.Color("#fff4dc"),
       new THREE.Color("#ffe1c6"),
@@ -973,6 +990,7 @@ export class BloomScene {
       sizes[i] = 1.0 + Math.pow(rng(), 1.7) * 3.6;
       brights[i] = 0.56 + Math.pow(rng(), 1.05) * 0.44;
       twinkles[i] = 0.2 + rng() * 0.85;
+      spreads[i] = 0.55 + rng() * 1.15;
       phases[i] = rng();
     }
 
@@ -983,11 +1001,13 @@ export class BloomScene {
     geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
     geometry.setAttribute("aBright", new THREE.BufferAttribute(brights, 1));
     geometry.setAttribute("aTwinkle", new THREE.BufferAttribute(twinkles, 1));
+    geometry.setAttribute("aSpread", new THREE.BufferAttribute(spreads, 1));
 
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: 1 },
+        uBloom: { value: 0 },
       },
       vertexShader: STAR_VERTEX,
       fragmentShader: STAR_FRAGMENT,
@@ -1050,8 +1070,14 @@ export class BloomScene {
     if (this.skyStars) {
       this.skyStars.material.uniforms.uTime.value = this._time;
     }
+    const starSpread = bloom * bloom;
+    this.starfield.material.uniforms.uBloom.value = starSpread;
+    if (this.skyStars) {
+      this.skyStars.material.uniforms.uBloom.value = starSpread;
+    }
     if (this.orbitStars) {
       this.orbitStars.material.uniforms.uTime.value = this._time;
+      this.orbitStars.material.uniforms.uBloom.value = starSpread;
       this.orbitGroup.rotation.y += safeDt * 0.1;
       this.orbitGroup.rotation.x = Math.sin(this._time * 0.09) * 0.06;
       this.orbitGroup.rotation.z = Math.cos(this._time * 0.06) * 0.04;

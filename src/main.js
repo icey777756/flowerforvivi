@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { BloomScene } from "./flower.js";
-import { HandTracker } from "./hand-tracker.js";
-import { HandOverlay } from "./hand-overlay.js";
+import { BloomScene } from "./flower.js?v=10";
+import { HandTracker } from "./hand-tracker.js?v=10";
+import { HandOverlay } from "./hand-overlay.js?v=10";
 
 /* ------------------------------------------------------------------ *
  * DOM
@@ -824,7 +824,7 @@ function frame(dt, time) {
     state.mode === "camera" &&
     state.cameraReady &&
     state.hasHand &&
-    performance.now() - state.lastHandAt > 380
+    performance.now() - state.lastHandAt > 650
   ) {
     state.hasHand = false;
     state.gesture = null;

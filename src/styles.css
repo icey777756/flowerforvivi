@@ -18,8 +18,7 @@
   --hair-warm: rgba(255, 190, 158, 0.28);
   --serif: "Optima", "Iowan Old Style", "Palatino Linotype", "Songti SC",
     "Noto Serif CJK SC", "STSong", "SimSun", serif;
-  --display: "Kaiti SC", "STKaiti", "KaiTi", "Kaiti TC", "Songti SC",
-    "Noto Serif CJK SC", serif;
+  --display: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", serif;
   --sans: "Avenir Next", "Futura", "Century Gothic", "Helvetica Neue",
     "PingFang SC", "Microsoft YaHei", sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);

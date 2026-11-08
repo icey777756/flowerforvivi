@@ -97,6 +97,8 @@ gh api -X POST repos/<owner>/<repo>/pages \
   -f "source[branch]=main" -f "source[path]=/"
 ```
 
+或者直接运行仓库里的 `bash 发布到GitHub.sh`：它会检查 `gh` 登录、创建仓库、推送，并自动开启 Pages。
+
 > GitHub Pages 走 HTTPS，手机浏览器因此允许摄像头；`.wasm` 即使被返回为 `application/octet-stream`，MediaPipe 也会自动回退到 ArrayBuffer 加载。
 
 ---

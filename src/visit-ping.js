@@ -27,8 +27,24 @@
   }
   if (navigator.doNotTrack === "1" || window.doNotTrack === "1") return;
 
-  // 20 秒内重复刷新只记一次，避免误触刷屏
-  const STORAGE_KEY = "vivi-visit-ping";
+  // One notification per site, per 20s. All project sites share the
+  // icey777756.github.io origin, so the path segment is part of the key.
+  const siteSegment =
+    (location.pathname.split("/").filter(Boolean)[0] || "root").toLowerCase();
+  const SITE_NAMES = {
+    flowerforvivi: "Flower for Vivi",
+    lovexizhou: "致 西洲",
+    "rosa-vivida": "ROSA VIVIDA",
+    "jellyfish-bedroom": "水母卧室",
+    "jellyfish-hands": "水母手势",
+    root: "主页",
+  };
+  const siteName = (
+    SITE_NAMES[siteSegment] ||
+    document.title.split(/[·|｜|—]/)[0].trim() ||
+    (siteSegment === "root" ? "主页" : siteSegment)
+  ).slice(0, 20);
+  const STORAGE_KEY = `vivi-visit-ping:${siteSegment}`;
   try {
     const last = Number(sessionStorage.getItem(STORAGE_KEY) || 0);
     if (Date.now() - last < 20000) return;
@@ -121,6 +137,7 @@
       `### ${formatBeijing(now)}（北京时间）`,
       "",
       `- 地区：${formatLocation(geo)}（仅到市）`,
+      `- 站点：${siteName}`,
       `- 页面：${location.href}`,
       `- 来源：${document.referrer ? document.referrer.slice(0, 180) : "直接打开 / 无来源"}`,
       `- 设备：${describeDevice()}`,
@@ -129,7 +146,7 @@
       `- 访问者本地时间：${now.toLocaleString()}`,
     ];
     const query = [
-      `title=${encodeURIComponent("Flower for Vivi · 有人打开了网站")}`,
+      `title=${encodeURIComponent(`有人打开了 ${siteName}`)}`,
       `desp=${encodeURIComponent(lines.join("\n"))}`,
     ].join("&");
     const url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}${query}`;

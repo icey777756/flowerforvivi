@@ -35,6 +35,15 @@ This project bundles the following third-party software and model assets.
   - `mediapipe/hands/hand_landmark_lite.tflite`
 - Full license text: [`licenses/Apache-2.0.txt`](licenses/Apache-2.0.txt)
 
+## Noto Serif SC (web font subset)
+
+- Font: Noto Serif SC, regular 400 (subset of 194 Chinese glyphs used by the site)
+- Copyright: © 2012 Google Inc.
+- License: SIL Open Font License 1.1
+- Source: https://github.com/notofonts/noto-cjk
+- Bundled file: `assets/fonts/vivi-serif.woff2`
+- Full license text: [`licenses/OFL-NotoSerifSC.txt`](licenses/OFL-NotoSerifSC.txt)
+
 ## Notes
 
 All bundled assets are served locally. The hand-tracking model runs in the

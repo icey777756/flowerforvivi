@@ -1,3 +1,14 @@
+@font-face {
+  font-family: "Vivi Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  /* Subset of Noto Serif SC (SIL OFL 1.1) covering every Chinese glyph used
+   * on the site, so the Songti look is identical on iOS and Android. */
+  src: url("../assets/fonts/vivi-serif.woff2?v=1") format("woff2");
+  unicode-range: U+3000-303F, U+4E00-9FFF, U+FF00-FFEF;
+}
+
 /* ------------------------------------------------------------------ *
  * Flower for Vivi · Bloom at Your Fingertips
  * Editorial nocturne / warm bioluminescence — mobile-first edition
@@ -16,9 +27,10 @@
   --faint: rgba(244, 233, 221, 0.3);
   --hair: rgba(244, 233, 221, 0.14);
   --hair-warm: rgba(255, 190, 158, 0.28);
-  --serif: "Optima", "Iowan Old Style", "Palatino Linotype", "Songti SC",
-    "Noto Serif CJK SC", "STSong", "SimSun", serif;
-  --display: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", serif;
+  --serif: "Optima", "Iowan Old Style", "Palatino Linotype", "Vivi Serif",
+    "Songti SC", "Noto Serif CJK SC", "STSong", "SimSun", serif;
+  --display: "Vivi Serif", "Songti SC", "STSong", "SimSun",
+    "Noto Serif CJK SC", serif;
   --sans: "Avenir Next", "Futura", "Century Gothic", "Helvetica Neue",
     "PingFang SC", "Microsoft YaHei", sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -600,14 +612,6 @@ body.has-camera #camera {
 
 .action__label {
   font-size: 13px;
-}
-
-.action__arrow {
-  margin-left: 2px;
-  font-family: var(--serif);
-  font-style: normal;
-  font-size: 17px;
-  opacity: 0.66;
 }
 
 .intro__privacy {

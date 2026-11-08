@@ -195,6 +195,7 @@ MediaPipe Hands 返回每只手 21 个归一化关键点，`analyzeHand()` 会�
 
 - [Three.js](https://threejs.org/) r186.1 — MIT
 - [MediaPipe Hands](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker) 0.4.1675469240 — Apache License 2.0
+- [Noto Serif SC](https://github.com/notofonts/noto-cjk)（自托管子集，37 KB）— SIL Open Font License 1.1
 
 详细许可文本见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) 与 [`licenses/`](licenses/)。
 

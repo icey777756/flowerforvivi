@@ -705,8 +705,8 @@ const HUD_COPY = {
   waiting: { label: "等待手掌", en: "WAITING FOR HAND" },
   fist: { label: "花苞", en: "CLOSED · FIST" },
   half: { label: "舒展", en: "OPENING" },
-  open: { label: "盛放", en: "BLOOM · OPEN" },
-  touchOpen: { label: "盛放", en: "TOUCH · BLOOM" },
+  open: { label: "送你一朵小葳花", en: "BLOOM · OPEN" },
+  touchOpen: { label: "送你一朵小葳花", en: "TOUCH · BLOOM" },
   touchHalf: { label: "舒展", en: "TOUCH · OPENING" },
   touchClosed: { label: "花苞", en: "TOUCH · BUD" },
   auto: { label: "呼吸", en: "AUTO · BREATH" },
@@ -806,7 +806,7 @@ function focusTarget() {
     if (width <= 680) {
       return {
         x: 0.5,
-        y: height < 660 ? 0.26 : height < 780 ? 0.285 : 0.3,
+        y: height < 660 ? 0.28 : height < 780 ? 0.305 : 0.325,
       };
     }
     if (width <= 1000) return { x: 0.7, y: 0.5 };
@@ -821,9 +821,10 @@ function focusTarget() {
 function bloomScale() {
   const width = window.innerWidth;
   const height = window.innerHeight;
-  if (width > height && height <= 560) return 0.9;
-  if (width >= 900) return 0.82;
-  return 1;
+  if (width > height && height <= 560) return state.experience ? 0.9 : 1.02;
+  if (width >= 900) return state.experience ? 0.82 : 1;
+  // The opening screen gets a fuller bloom; it sits lower and larger.
+  return state.experience ? 1 : 1.16;
 }
 
 function frame(dt, time) {

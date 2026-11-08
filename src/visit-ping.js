@@ -14,7 +14,7 @@
 
   // 旧版 Server酱：只填 SendKey，会自动拼成
   // https://sctapi.ftqq.com/<SendKey>.send
-  const SEND_KEY = "";
+  const SEND_KEY = "SCT465373TQglOD84yTEzgaPX82QkHn0zX";
 
   const endpoint =
     PUSH_ENDPOINT ||
@@ -63,11 +63,64 @@
     }
   }
 
-  function send() {
+  // City-level lookup only. The visitor's IP is seen by the lookup service,
+  // never by us; we keep only country / province / city in the message.
+  const LOCATION_PROVIDERS = [
+    {
+      url: "https://ipapi.co/json/",
+      parse: (data) => ({
+        country: data.country_name,
+        region: data.region,
+        city: data.city,
+      }),
+    },
+    {
+      url: "https://get.geojs.io/v1/ip/geo.json",
+      parse: (data) => ({
+        country: data.country,
+        region: data.region,
+        city: data.city,
+      }),
+    },
+  ];
+
+  async function lookupLocation() {
+    let countryOnly = null;
+    for (const provider of LOCATION_PROVIDERS) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 1800);
+      try {
+        const response = await fetch(provider.url, {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (!response.ok) continue;
+        const data = await response.json();
+        const geo = provider.parse(data);
+        if (geo && (geo.city || geo.region)) return geo;
+        if (geo && geo.country && !countryOnly) countryOnly = geo;
+      } catch {
+        /* try the next provider */
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    return countryOnly;
+  }
+
+  function formatLocation(geo) {
+    if (!geo) return "未知（IP 归属地查询失败）";
+    const parts = [geo.country, geo.region, geo.city].filter(Boolean);
+    return parts.length ? parts.join(" · ") : "未知";
+  }
+
+  async function send() {
     const now = new Date();
+    const geo = await lookupLocation();
     const lines = [
       `### ${formatBeijing(now)}（北京时间）`,
       "",
+      `- 地区：${formatLocation(geo)}（仅到市）`,
       `- 页面：${location.href}`,
       `- 来源：${document.referrer ? document.referrer.slice(0, 180) : "直接打开 / 无来源"}`,
       `- 设备：${describeDevice()}`,

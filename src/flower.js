@@ -421,6 +421,8 @@ const STAR_VERTEX = /* glsl */ `
   uniform float uPixelRatio;
   attribute float aSize;
   attribute float aPhase;
+  attribute float aBright;
+  attribute float aTwinkle;
   attribute vec3 aColor;
 
   varying vec3 vColor;
@@ -428,20 +430,23 @@ const STAR_VERTEX = /* glsl */ `
 
   void main() {
     vec3 pos = position;
-    // Each star drifts on its own slow orbit, so the whole sky breathes
-    // without ever looking like a rotating skybox.
+    // Each star drifts on its own slow orbit. The amplitude grows with the
+    // phase term so no two stars move in lockstep.
     pos.x += sin(uTime * 0.14 + aPhase * 27.0) * (0.3 + aPhase * 1.0);
     pos.y += sin(uTime * 0.1 + aPhase * 13.0) * (0.1 + aPhase * 0.35);
     pos.z += cos(uTime * 0.07 + aPhase * 9.0) * 0.22;
+
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+    float twinkle =
+      sin(uTime * (0.35 + aTwinkle * 0.85) + aPhase * 17.0) * 0.5 + 0.5;
     gl_PointSize = clamp(
-      aSize * uPixelRatio * (1.0 + sin(uTime * 0.7 + aPhase * 9.0) * 0.35),
+      aSize * uPixelRatio * (0.82 + twinkle * 0.38),
       1.0,
-      6.0
+      11.0
     );
     gl_Position = projectionMatrix * mvPosition;
     vColor = aColor;
-    vAlpha = 0.42 + 0.58 * (sin(uTime * 0.5 + aPhase * 17.0) * 0.5 + 0.5);
+    vAlpha = aBright * (0.45 + twinkle * 0.55);
   }
 `;
 
@@ -450,10 +455,63 @@ const STAR_FRAGMENT = /* glsl */ `
   varying float vAlpha;
 
   void main() {
-    float d = length(gl_PointCoord - vec2(0.5)) * 2.0;
+    vec2 centered = gl_PointCoord - vec2(0.5);
+    float d = length(centered) * 2.0;
     if (d > 1.0) discard;
-    float a = smoothstep(1.0, 0.0, d);
-    gl_FragColor = vec4(vColor * (0.85 + a * 0.7), a * vAlpha * 0.86);
+
+    // A soft, mostly-filled disc keeps 1-3px stars visible, while the hot
+    // centre and wide tail give the larger ones depth.
+    float aa = smoothstep(1.0, 0.82, d);
+    float falloff = pow(max(0.0, 1.0 - d), 1.5);
+    float alpha = vAlpha * (0.4 + 0.6 * falloff) * aa;
+    vec3 color = vColor * (0.78 + 0.9 * pow(max(0.0, 1.0 - d), 3.0));
+
+    gl_FragColor = vec4(color, alpha);
+  }
+`;
+
+const BOKEH_VERTEX = /* glsl */ `
+  uniform float uTime;
+  uniform float uPixelRatio;
+  attribute float aSize;
+  attribute float aPhase;
+  attribute float aBright;
+  attribute vec3 aColor;
+
+  varying vec3 vColor;
+  varying float vAlpha;
+
+  void main() {
+    vec3 pos = position;
+    pos.x += sin(uTime * 0.03 + aPhase * 31.0) * 0.6;
+    pos.y += cos(uTime * 0.025 + aPhase * 17.0) * 0.4;
+
+    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+    gl_PointSize = clamp(
+      aSize * uPixelRatio * (0.96 + 0.04 * sin(uTime * 0.3 + aPhase * 9.0)),
+      2.0,
+      96.0
+    );
+    gl_Position = projectionMatrix * mvPosition;
+    vColor = aColor;
+    vAlpha = aBright * (0.7 + 0.3 * sin(uTime * 0.22 + aPhase * 7.0));
+  }
+`;
+
+const BOKEH_FRAGMENT = /* glsl */ `
+  varying vec3 vColor;
+  varying float vAlpha;
+
+  void main() {
+    vec2 centered = gl_PointCoord - vec2(0.5);
+    float d = length(centered) * 2.0;
+    if (d > 1.0) discard;
+
+    float disc = smoothstep(1.0, 0.55, d);
+    float rim = smoothstep(0.9, 1.0, d) * 0.22;
+    float alpha = vAlpha * (disc * 0.55 + rim);
+
+    gl_FragColor = vec4(vColor, alpha);
   }
 `;
 
@@ -507,12 +565,15 @@ function createStarfield() {
   const colors = new Float32Array(count * 3);
   const sizes = new Float32Array(count);
   const phases = new Float32Array(count);
+  const brights = new Float32Array(count);
+  const twinkles = new Float32Array(count);
   const palette = [
-    new THREE.Color("#ffe5c8"),
-    new THREE.Color("#ffc0a3"),
-    new THREE.Color("#d8c5ff"),
-    new THREE.Color("#fff7ed"),
-    new THREE.Color("#b9a3ff"),
+    new THREE.Color("#fff6e8"),
+    new THREE.Color("#ffd9c4"),
+    new THREE.Color("#e4d6ff"),
+    new THREE.Color("#ffffff"),
+    new THREE.Color("#bcd2ff"),
+    new THREE.Color("#ffc9e2"),
   ];
   const color = new THREE.Color();
 
@@ -525,13 +586,20 @@ function createStarfield() {
     positions[i * 3 + 1] = y * 0.65;
     positions[i * 3 + 2] = Math.sin(theta) * spread - 12;
 
+    // Near stars are larger and brighter; far ones recede into the haze.
+    const depth = (radius - 12) / 22;
     color
       .copy(palette[Math.floor(rng() * palette.length)])
-      .multiplyScalar(0.72 + rng() * 0.68);
+      .multiplyScalar((0.9 + rng() * 0.55) * (1.08 - depth * 0.3));
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
-    sizes[i] = 0.55 + Math.pow(rng(), 2.1) * 2.4;
+
+    sizes[i] =
+      (0.6 + Math.pow(rng(), 2.4) * 5.6) * (1.12 - depth * 0.45);
+    brights[i] =
+      (0.26 + Math.pow(rng(), 1.15) * 0.74) * (1.05 - depth * 0.28);
+    twinkles[i] = 0.15 + rng() * 0.95;
     phases[i] = rng();
   }
 
@@ -540,6 +608,8 @@ function createStarfield() {
   geometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
   geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
   geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
+  geometry.setAttribute("aBright", new THREE.BufferAttribute(brights, 1));
+  geometry.setAttribute("aTwinkle", new THREE.BufferAttribute(twinkles, 1));
 
   const material = new THREE.ShaderMaterial({
     uniforms: {
@@ -557,95 +627,6 @@ function createStarfield() {
   points.frustumCulled = false;
   points.renderOrder = -2;
   return points;
-}
-
-
-function textureFromCanvas(canvas) {
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function createSparkleTexture() {
-  const size = 128;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  const c = size / 2;
-  ctx.globalCompositeOperation = "lighter";
-
-  const halo = ctx.createRadialGradient(c, c, 0, c, c, c);
-  halo.addColorStop(0, "rgba(255, 255, 255, 0.95)");
-  halo.addColorStop(0.07, "rgba(235, 230, 255, 0.55)");
-  halo.addColorStop(0.28, "rgba(160, 140, 255, 0.16)");
-  halo.addColorStop(1, "rgba(110, 90, 255, 0)");
-  ctx.fillStyle = halo;
-  ctx.fillRect(0, 0, size, size);
-
-  const ray = (angle, length, width, alpha) => {
-    ctx.save();
-    ctx.translate(c, c);
-    ctx.rotate(angle);
-    const grad = ctx.createLinearGradient(0, 0, length, 0);
-    grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
-    grad.addColorStop(0.3, `rgba(214, 204, 255, ${alpha * 0.35})`);
-    grad.addColorStop(1, "rgba(150, 130, 255, 0)");
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.moveTo(0, -width);
-    ctx.lineTo(length, 0);
-    ctx.lineTo(0, width);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  };
-
-  for (let i = 0; i < 4; i += 1) ray((i * Math.PI) / 2, c * 0.96, 1.2, 0.55);
-  for (let i = 0; i < 4; i += 1) {
-    ray(Math.PI / 4 + (i * Math.PI) / 2, c * 0.55, 0.8, 0.22);
-  }
-
-  return textureFromCanvas(canvas);
-}
-
-function createMeteorTexture() {
-  const width = 256;
-  const height = 64;
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, width, height);
-  ctx.globalCompositeOperation = "lighter";
-
-  const streak = ctx.createLinearGradient(0, 0, 236, 0);
-  streak.addColorStop(0, "rgba(140, 120, 255, 0)");
-  streak.addColorStop(0.4, "rgba(190, 175, 255, 0.5)");
-  streak.addColorStop(0.8, "rgba(242, 240, 255, 0.96)");
-  streak.addColorStop(1, "rgba(255, 255, 255, 1)");
-  ctx.fillStyle = streak;
-  ctx.beginPath();
-  ctx.moveTo(0, height / 2 - 0.6);
-  ctx.quadraticCurveTo(150, height / 2 - 2.2, 236, height / 2 - 3.4);
-  ctx.lineTo(246, height / 2 + 0.2);
-  ctx.lineTo(236, height / 2 + 3.4);
-  ctx.quadraticCurveTo(150, height / 2 + 2.2, 0, height / 2 + 0.6);
-  ctx.closePath();
-  ctx.fill();
-
-  const head = ctx.createRadialGradient(238, height / 2, 0, 238, height / 2, 17);
-  head.addColorStop(0, "rgba(255, 255, 255, 1)");
-  head.addColorStop(0.18, "rgba(228, 222, 255, 0.8)");
-  head.addColorStop(0.55, "rgba(156, 136, 255, 0.24)");
-  head.addColorStop(1, "rgba(120, 100, 255, 0)");
-  ctx.fillStyle = head;
-  ctx.fillRect(0, 0, width, height);
-
-  return textureFromCanvas(canvas);
 }
 
 /* ------------------------------------------------------------------ *
@@ -731,18 +712,8 @@ export class BloomScene {
     this.starfield.rotation.y = 0.16;
     this.scene.add(this.starfield);
 
-    this._sparkleTexture = createSparkleTexture();
-    this.sparkles = [];
-    this._buildSparkles();
     this._buildSkyStars();
-
-    this._meteorTexture = createMeteorTexture();
-    this.meteors = [];
-    this._nextMeteorAt = 2.5 + Math.random() * 3.5;
-    this._meteorPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 6);
-    this._meteorNdc = new THREE.Vector2();
-    this._meteorA = new THREE.Vector3();
-    this._meteorB = new THREE.Vector3();
+    this._buildBokeh();
 
     const geometry = createPetalGeometry(this.quality);
     this.petalMaterial = new THREE.ShaderMaterial({
@@ -850,11 +821,14 @@ export class BloomScene {
     if (this.skyStars) {
       this.skyStars.material.uniforms.uPixelRatio.value = this._dpr;
     }
+    if (this.bokeh) {
+      this.bokeh.material.uniforms.uPixelRatio.value = this._dpr;
+    }
     this.pointerOrb.visible = false;
     this._pointerReady = false;
     this._focusDirty = true;
     this._repositionSkyStars();
-    this._repositionSparkles();
+    this._repositionBokeh();
   }
 
   setFocus(x, y = 0.5) {
@@ -919,20 +893,24 @@ export class BloomScene {
 
   _buildSkyStars() {
     const rng = mulberry32(0x51a9c0);
-    const count = 170;
+    const count = 190;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
     const phases = new Float32Array(count);
+    const brights = new Float32Array(count);
+    const twinkles = new Float32Array(count);
     const palette = [
       new THREE.Color("#fff8ef"),
       new THREE.Color("#e9dcff"),
       new THREE.Color("#ffd9e6"),
       new THREE.Color("#bca8ff"),
+      new THREE.Color("#cfe1ff"),
     ];
     const color = new THREE.Color();
     const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 18);
     const hit = new THREE.Vector3();
+    const ndc = new THREE.Vector2();
     this._skyNdc = [];
     this.camera.updateMatrixWorld(true);
 
@@ -940,10 +918,8 @@ export class BloomScene {
       const ndcX = -0.95 + rng() * 1.9;
       const ndcY = -0.92 + rng() * 1.82;
       this._skyNdc.push(new THREE.Vector2(ndcX, ndcY));
-      this._raycaster.setFromCamera(
-        this._meteorNdc ? this._meteorNdc.set(ndcX, ndcY) : new THREE.Vector2(ndcX, ndcY),
-        this.camera,
-      );
+      ndc.set(ndcX, ndcY);
+      this._raycaster.setFromCamera(ndc, this.camera);
       if (!this._raycaster.ray.intersectPlane(plane, hit)) {
         hit.set(0, 0, -18);
       }
@@ -953,11 +929,13 @@ export class BloomScene {
 
       color
         .copy(palette[Math.floor(rng() * palette.length)])
-        .multiplyScalar(0.8 + rng() * 0.5);
+        .multiplyScalar(0.85 + rng() * 0.5);
       colors[i * 3] = color.r;
       colors[i * 3 + 1] = color.g;
       colors[i * 3 + 2] = color.b;
-      sizes[i] = 1.5 + Math.pow(rng(), 1.7) * 3.2;
+      sizes[i] = (0.65 + Math.pow(rng(), 2.1) * 5.2) * (0.9 + (ndcY + 1) * 0.08);
+      brights[i] = 0.32 + Math.pow(rng(), 1.1) * 0.68;
+      twinkles[i] = 0.15 + rng() * 0.9;
       phases[i] = rng();
     }
 
@@ -966,6 +944,8 @@ export class BloomScene {
     geometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
     geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
     geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
+    geometry.setAttribute("aBright", new THREE.BufferAttribute(brights, 1));
+    geometry.setAttribute("aTwinkle", new THREE.BufferAttribute(twinkles, 1));
 
     const material = new THREE.ShaderMaterial({
       uniforms: {
@@ -987,50 +967,6 @@ export class BloomScene {
     this.skyStars = points;
   }
 
-  _buildSparkles() {
-    const rng = mulberry32(0x5a17c3);
-    this.camera.updateMatrixWorld(true);
-    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 16);
-    const ndc = new THREE.Vector2();
-    const hit = new THREE.Vector3();
-
-    for (let i = 0; i < 22; i += 1) {
-      // Place the flares through the camera so they always land in the
-      // visible sky instead of being wasted off-screen.
-      ndc.set(-0.86 + rng() * 1.72, -0.62 + rng() * 1.56);
-      this._raycaster.setFromCamera(ndc, this.camera);
-      if (!this._raycaster.ray.intersectPlane(plane, hit)) {
-        hit.set(0, 0, -16);
-      }
-
-      const scale = 0.28 + rng() * 0.78;
-      const material = new THREE.SpriteMaterial({
-        map: this._sparkleTexture,
-        color: rng() > 0.42 ? 0xf6f2ff : 0xcdbaff,
-        transparent: true,
-        opacity: 0,
-        depthWrite: false,
-        depthTest: true,
-        blending: THREE.AdditiveBlending,
-        rotation: rng() * Math.PI,
-      });
-      const sprite = new THREE.Sprite(material);
-      sprite.position.copy(hit);
-      sprite.scale.set(scale, scale, 1);
-      sprite.renderOrder = -1;
-      this.scene.add(sprite);
-      this.sparkles.push({
-        sprite,
-        origin: hit.clone(),
-        ndc: ndc.clone(),
-        phase: rng() * Math.PI * 2,
-        speed: 0.22 + rng() * 0.42,
-        base: 0.16 + rng() * 0.3,
-        scale,
-      });
-    }
-  }
-
   _repositionSkyStars() {
     if (!this.skyStars || !this._skyNdc) return;
     this.camera.updateMatrixWorld(true);
@@ -1046,194 +982,89 @@ export class BloomScene {
     positions.needsUpdate = true;
   }
 
-  _repositionSparkles() {
-    if (!this.sparkles || !this.sparkles.length) return;
-    this.camera.updateMatrixWorld(true);
-    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 16);
+  _buildBokeh() {
+    const rng = mulberry32(0x7b0e11);
+    const count = 26;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+    const phases = new Float32Array(count);
+    const brights = new Float32Array(count);
+    const palette = [
+      new THREE.Color("#b9a3ff"),
+      new THREE.Color("#8fb7ff"),
+      new THREE.Color("#ffd6e7"),
+      new THREE.Color("#fff1db"),
+    ];
+    const color = new THREE.Color();
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 20);
     const hit = new THREE.Vector3();
-    for (const sparkle of this.sparkles) {
-      this._raycaster.setFromCamera(sparkle.ndc, this.camera);
-      if (this._raycaster.ray.intersectPlane(plane, hit)) {
-        sparkle.origin.copy(hit);
-        sparkle.sprite.position.copy(hit);
-      }
-    }
-  }
-
-  _updateSparkles(dt, time) {
-    for (const sparkle of this.sparkles) {
-      const pulse = 0.5 + 0.5 * Math.sin(time * sparkle.speed + sparkle.phase);
-      sparkle.sprite.material.opacity = sparkle.base * (0.45 + pulse * 0.55);
-      sparkle.sprite.material.rotation += dt * 0.06;
-      const scale = sparkle.scale * (0.86 + pulse * 0.18);
-      sparkle.sprite.scale.set(scale, scale, 1);
-      sparkle.sprite.position.x =
-        sparkle.origin.x + Math.sin(time * 0.045 + sparkle.phase) * 0.25;
-      sparkle.sprite.position.y =
-        sparkle.origin.y + Math.cos(time * 0.035 + sparkle.phase) * 0.18;
-    }
-  }
-
-  _worldOnMeteorPlane(x, y, target) {
-    this._raycaster.setFromCamera(this._meteorNdc.set(x, y), this.camera);
-    if (!this._raycaster.ray.intersectPlane(this._meteorPlane, target)) {
-      target.set(0, 6, -6);
-    }
-    return target;
-  }
-
-  spawnMeteor() {
-    if (!this._meteorTexture) return;
-
+    const ndc = new THREE.Vector2();
+    this._bokehNdc = [];
     this.camera.updateMatrixWorld(true);
-    const fireball = Math.random() < 0.08;
-    const startNdcX = 0.12 + Math.random() * 0.82;
-    const startNdcY = 0.78 + Math.random() * 0.2;
-    // Meteors belong in the open sky: a shallow, mostly horizontal path
-    // above the bloom, never a beam that slices through the flower.
-    const endNdcX = startNdcX - (0.75 + Math.random() * 0.5);
-    const endNdcY = Math.max(
-      0.64,
-      startNdcY - (0.08 + Math.random() * 0.18),
-    );
 
-    const start = this._worldOnMeteorPlane(
-      startNdcX,
-      startNdcY,
-      new THREE.Vector3(),
-    );
-    const end = this._worldOnMeteorPlane(
-      endNdcX,
-      endNdcY,
-      new THREE.Vector3(),
-    );
-    const dir = end.sub(start).normalize();
-    const length =
-      (fireball ? 3.2 : 1.9) + Math.random() * (fireball ? 0.6 : 0.8);
-    const baseOpacity = fireball ? 0.94 : 0.8 + Math.random() * 0.18;
+    for (let i = 0; i < count; i += 1) {
+      const ndcX = -0.92 + rng() * 1.84;
+      const ndcY = -0.92 + rng() * 1.84;
+      this._bokehNdc.push(new THREE.Vector2(ndcX, ndcY));
+      ndc.set(ndcX, ndcY);
+      this._raycaster.setFromCamera(ndc, this.camera);
+      if (!this._raycaster.ray.intersectPlane(plane, hit)) {
+        hit.set(0, 0, -20);
+      }
+      positions[i * 3] = hit.x;
+      positions[i * 3 + 1] = hit.y;
+      positions[i * 3 + 2] = hit.z;
 
-    const coreMaterial = new THREE.SpriteMaterial({
-      map: this._meteorTexture,
-      color: fireball ? 0xfff0d6 : 0xffffff,
+      color.copy(palette[Math.floor(rng() * palette.length)]);
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+      sizes[i] = 6 + Math.pow(rng(), 1.6) * 26;
+      brights[i] = 0.06 + rng() * 0.1;
+      phases[i] = rng();
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+    geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
+    geometry.setAttribute("aBright", new THREE.BufferAttribute(brights, 1));
+
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uPixelRatio: { value: 1 },
+      },
+      vertexShader: BOKEH_VERTEX,
+      fragmentShader: BOKEH_FRAGMENT,
       transparent: true,
-      opacity: 0,
-      depthWrite: false,
-      depthTest: true,
-      blending: THREE.AdditiveBlending,
-    });
-    const glowMaterial = new THREE.SpriteMaterial({
-      map: this._meteorTexture,
-      color: fireball ? 0xff9d78 : 0x9f8dff,
-      transparent: true,
-      opacity: 0,
-      depthWrite: false,
-      depthTest: true,
-      blending: THREE.AdditiveBlending,
-    });
-    const headMaterial = new THREE.SpriteMaterial({
-      map: this._sparkleTexture,
-      color: fireball ? 0xffe3c4 : 0xffffff,
-      transparent: true,
-      opacity: 0,
       depthWrite: false,
       depthTest: true,
       blending: THREE.AdditiveBlending,
     });
 
-    const group = new THREE.Group();
-    group.position.copy(start);
-
-    const core = new THREE.Sprite(coreMaterial);
-    core.scale.set(length, length * 0.11, 1);
-    core.renderOrder = 2;
-
-    const glow = new THREE.Sprite(glowMaterial);
-    glow.scale.set(length * 1.25, length * 0.34, 1);
-    glow.renderOrder = 1;
-
-    const head = new THREE.Sprite(headMaterial);
-    const headScale = (fireball ? 0.4 : 0.18) + Math.random() * 0.14;
-    head.scale.setScalar(headScale);
-    head.renderOrder = 3;
-
-    group.add(core, glow, head);
-    this.scene.add(group);
-
-    this.meteors.push({
-      group,
-      core,
-      glow,
-      head,
-      headScale,
-      dir,
-      length,
-      age: 0,
-      life: (fireball ? 2.2 : 1.4) + Math.random() * 0.7,
-      speed: (fireball ? 3.6 : 4.6) + Math.random() * 1.8,
-      accel: 0.9 + Math.random() * 1.4,
-      gravity: 0.28 + Math.random() * 0.42,
-      base: baseOpacity,
-      phase: Math.random() * Math.PI * 2,
-      fireball,
-    });
+    const points = new THREE.Points(geometry, material);
+    points.frustumCulled = false;
+    points.renderOrder = -4;
+    this.scene.add(points);
+    this.bokeh = points;
   }
 
-  _updateMeteors(dt, time) {
-    if (time >= this._nextMeteorAt) {
-      this.spawnMeteor();
-      if (Math.random() < 0.24) this.spawnMeteor();
-      this._nextMeteorAt = time + 9 + Math.random() * 12;
-    }
-
-    for (let i = this.meteors.length - 1; i >= 0; i -= 1) {
-      const meteor = this.meteors[i];
-      meteor.age += dt;
-      meteor.speed += meteor.accel * dt;
-
-      // A slight gravity bend keeps the flight path from feeling like a
-      // perfectly straight laser; the tail is re-aimed every frame.
-      meteor.dir.y -= meteor.gravity * dt;
-      meteor.dir.normalize();
-      meteor.group.position.addScaledVector(meteor.dir, meteor.speed * dt);
-
-      const p0 = this._meteorA.copy(meteor.group.position).project(this.camera);
-      const p1 = this._meteorB
-        .copy(meteor.group.position)
-        .add(meteor.dir)
-        .project(this.camera);
-      const angle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
-      meteor.core.material.rotation = angle;
-      meteor.glow.material.rotation = angle;
-
-      meteor.head.position
-        .copy(meteor.dir)
-        .multiplyScalar(meteor.length * 0.42);
-
-      const t = meteor.age / meteor.life;
-      const fadeIn = smoothstep(0, 0.1, t);
-      const fadeOut = 1 - smoothstep(0.62, 1, t);
-      const fade = Math.max(0, fadeIn * fadeOut);
-      const flicker = 0.9 + 0.1 * Math.sin(time * 38 + meteor.phase);
-
-      meteor.core.material.opacity = meteor.base * fade * flicker;
-      meteor.glow.material.opacity = meteor.base * 0.32 * fade;
-      meteor.head.material.opacity = meteor.base * 0.72 * fade * flicker;
-
-      const stretch = 0.82 + t * 0.32;
-      meteor.core.scale.x = meteor.length * stretch;
-      meteor.glow.scale.x = meteor.length * 1.25 * stretch;
-      meteor.head.scale.setScalar(
-        meteor.headScale * (0.92 + 0.1 * Math.sin(time * 17 + meteor.phase)),
-      );
-
-      if (t >= 1) {
-        this.scene.remove(meteor.group);
-        meteor.core.material.dispose();
-        meteor.glow.material.dispose();
-        meteor.head.material.dispose();
-        this.meteors.splice(i, 1);
+  _repositionBokeh() {
+    if (!this.bokeh || !this._bokehNdc) return;
+    this.camera.updateMatrixWorld(true);
+    const positions = this.bokeh.geometry.attributes.position;
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 20);
+    const hit = new THREE.Vector3();
+    for (let i = 0; i < this._bokehNdc.length; i += 1) {
+      this._raycaster.setFromCamera(this._bokehNdc[i], this.camera);
+      if (this._raycaster.ray.intersectPlane(plane, hit)) {
+        positions.setXYZ(i, hit.x, hit.y, hit.z);
       }
     }
+    positions.needsUpdate = true;
   }
 
   update(dt, input) {
@@ -1274,10 +1105,11 @@ export class BloomScene {
       this.skyStars.position.x = skyDriftX;
       this.skyStars.position.y = skyDriftY;
     }
-    this._updateSparkles(safeDt, this._time);
-    this._updateMeteors(safeDt, this._time);
     if (this.skyStars) {
       this.skyStars.material.uniforms.uTime.value = this._time;
+    }
+    if (this.bokeh) {
+      this.bokeh.material.uniforms.uTime.value = this._time;
     }
     this.bloomPass.strength = 0.2 + bloom * 0.06 + this.burst * 0.28;
     this.bloomPass.radius = 0.28 + bloom * 0.06;
@@ -1402,14 +1234,9 @@ export class BloomScene {
       this.skyStars.geometry.dispose();
       this.skyStars.material.dispose();
     }
-    this._sparkleTexture.dispose();
-    this._meteorTexture.dispose();
-    for (const sparkle of this.sparkles) sparkle.sprite.material.dispose();
-    for (const meteor of this.meteors) {
-      this.scene.remove(meteor.group);
-      meteor.core.material.dispose();
-      meteor.glow.material.dispose();
-      meteor.head.material.dispose();
+    if (this.bokeh) {
+      this.bokeh.geometry.dispose();
+      this.bokeh.material.dispose();
     }
     this.composer.dispose();
     this.renderer.dispose();

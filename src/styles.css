@@ -718,6 +718,7 @@ body.has-camera #camera {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  min-height: 24px;
   margin-top: 1px;
 }
 

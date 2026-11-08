@@ -679,12 +679,12 @@ function onTrackerStatus(status) {
 const HUD_COPY = {
   idle: { label: "等待手掌", en: "WAITING" },
   waiting: { label: "等待手掌", en: "WAITING FOR HAND" },
-  fist: { label: "—", en: "CLOSED · FIST" },
-  half: { label: "—", en: "OPENING" },
+  fist: { label: "", en: "CLOSED · FIST" },
+  half: { label: "", en: "OPENING" },
   open: { label: "送你一朵小葳花", en: "BLOOM · OPEN" },
   touchOpen: { label: "送你一朵小葳花", en: "TOUCH · BLOOM" },
-  touchHalf: { label: "—", en: "TOUCH · OPENING" },
-  touchClosed: { label: "—", en: "TOUCH · BUD" },
+  touchHalf: { label: "", en: "TOUCH · OPENING" },
+  touchClosed: { label: "", en: "TOUCH · BUD" },
   auto: { label: "呼吸", en: "AUTO · BREATH" },
 };
 

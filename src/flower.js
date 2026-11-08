@@ -1086,13 +1086,16 @@ export class BloomScene {
     if (!this._meteorTexture) return;
 
     this.camera.updateMatrixWorld(true);
-    const fireball = Math.random() < 0.12;
+    const fireball = Math.random() < 0.08;
     const startNdcX = 0.12 + Math.random() * 0.82;
-    const startNdcY = 0.56 + Math.random() * 0.42;
-    const screenAngle = -(0.38 + Math.random() * 0.72);
-    const travel = (0.85 + Math.random() * 0.5) * (fireball ? 1.1 : 1);
-    const endNdcX = startNdcX - Math.cos(screenAngle) * travel;
-    const endNdcY = startNdcY + Math.sin(screenAngle) * travel;
+    const startNdcY = 0.78 + Math.random() * 0.2;
+    // Meteors belong in the open sky: a shallow, mostly horizontal path
+    // above the bloom, never a beam that slices through the flower.
+    const endNdcX = startNdcX - (0.75 + Math.random() * 0.5);
+    const endNdcY = Math.max(
+      0.64,
+      startNdcY - (0.08 + Math.random() * 0.18),
+    );
 
     const start = this._worldOnMeteorPlane(
       startNdcX,
@@ -1106,8 +1109,8 @@ export class BloomScene {
     );
     const dir = end.sub(start).normalize();
     const length =
-      (fireball ? 4.2 : 2.4) + Math.random() * (fireball ? 1.6 : 1.1);
-    const baseOpacity = fireball ? 1 : 0.82 + Math.random() * 0.18;
+      (fireball ? 3.2 : 1.9) + Math.random() * (fireball ? 0.6 : 0.8);
+    const baseOpacity = fireball ? 0.94 : 0.8 + Math.random() * 0.18;
 
     const coreMaterial = new THREE.SpriteMaterial({
       map: this._meteorTexture,
@@ -1149,7 +1152,7 @@ export class BloomScene {
     glow.renderOrder = 1;
 
     const head = new THREE.Sprite(headMaterial);
-    const headScale = (fireball ? 0.5 : 0.2) + Math.random() * 0.16;
+    const headScale = (fireball ? 0.4 : 0.18) + Math.random() * 0.14;
     head.scale.setScalar(headScale);
     head.renderOrder = 3;
 
@@ -1261,6 +1264,16 @@ export class BloomScene {
     this.petalMaterial.uniforms.uBurst.value = this.burst;
     this.starfield.material.uniforms.uTime.value = this._time;
     this.starfield.rotation.y += safeDt * 0.004;
+    // Whole-sky parallax: a barely-there drift that makes the field feel
+    // suspended rather than printed on the background.
+    const skyDriftX = Math.sin(this._time * 0.05) * 0.5;
+    const skyDriftY = Math.cos(this._time * 0.037) * 0.35;
+    this.starfield.position.x = skyDriftX;
+    this.starfield.position.y = skyDriftY;
+    if (this.skyStars) {
+      this.skyStars.position.x = skyDriftX;
+      this.skyStars.position.y = skyDriftY;
+    }
     this._updateSparkles(safeDt, this._time);
     this._updateMeteors(safeDt, this._time);
     if (this.skyStars) {

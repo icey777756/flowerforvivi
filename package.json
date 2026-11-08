@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "指尖生花 · 手机优先的可交互手势粒子花朵（MediaPipe Hands + Three.js）",
+  "description": "Flowers for Vivi · 手机优先的可交互手势粒子花朵（MediaPipe Hands + Three.js）",
   "homepage": "https://icey777756.github.io/fingertip-bloom/",
   "repository": {
     "type": "git",

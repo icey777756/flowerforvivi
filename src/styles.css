@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------ *
- * 指尖生花 · Bloom at Your Fingertips
+ * Flowers for Vivi · Bloom at Your Fingertips
  * Editorial nocturne / warm bioluminescence — mobile-first edition
  * ------------------------------------------------------------------ */
 
@@ -244,9 +244,9 @@ body.has-camera #camera {
 }
 
 .brand__name {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.14em;
   color: rgba(255, 240, 226, 0.92);
   white-space: nowrap;
 }
@@ -409,26 +409,6 @@ body.has-camera #camera {
     transform 0.8s var(--ease),
     filter 0.7s var(--ease),
     visibility 0s linear 0.8s;
-}
-
-.intro__eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 0 18px;
-  font-family: var(--sans);
-  font-size: 9px;
-  line-height: 1;
-  letter-spacing: 0.3em;
-  color: rgba(255, 195, 160, 0.66);
-  text-shadow: 0 1px 12px rgba(4, 2, 8, 0.9);
-}
-
-.intro__eyebrow span {
-  display: block;
-  width: 26px;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(255, 185, 145, 0.7), transparent);
 }
 
 .intro__title {
@@ -1158,16 +1138,51 @@ body.is-searching .focus-hint {
   text-align: center;
 }
 
+/* ------------------------- narrow phones (320px) ------------------------ */
+
+@media (max-width: 360px) {
+  .topbar {
+    gap: 8px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand__mark {
+    width: 26px;
+    height: 26px;
+  }
+
+  .brand__name {
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+  }
+
+  .brand__sub {
+    display: none;
+  }
+
+  .status {
+    height: 27px;
+    padding: 0 9px;
+    gap: 6px;
+  }
+
+  .status__text {
+    font-size: 8px;
+    letter-spacing: 0.12em;
+  }
+}
+
 /* --------------------------- compact phones ---------------------------- */
 
 @media (max-width: 899px) and (max-height: 740px) {
   .intro {
     padding-top: 22px;
     padding-bottom: calc(20px + var(--safe-bottom));
-  }
-
-  .intro__eyebrow {
-    margin-bottom: 14px;
   }
 
   .intro__title {
@@ -1213,20 +1228,18 @@ body.is-searching .focus-hint {
 }
 
 @media (max-width: 899px) and (max-height: 640px) {
-  .intro__lede {
-    display: none;
-  }
-
   .intro__privacy {
     display: none;
   }
 
-  .intro__title {
-    font-size: 2.15rem;
+  .intro__lede {
+    margin-top: 12px;
+    font-size: 12px;
+    line-height: 1.75;
   }
 
-  .intro__eyebrow {
-    margin-bottom: 10px;
+  .intro__title {
+    font-size: 2.15rem;
   }
 
   .intro__actions {
@@ -1288,7 +1301,7 @@ body.is-searching .focus-hint {
 
   .brand__name {
     font-size: 17px;
-    letter-spacing: 0.24em;
+    letter-spacing: 0.16em;
   }
 
   .brand__sub {
@@ -1332,12 +1345,6 @@ body.is-searching .focus-hint {
 
   .is-experiencing .intro {
     transform: translateY(calc(-44% + 26px));
-  }
-
-  .intro__eyebrow {
-    margin-bottom: 26px;
-    font-size: 8px;
-    letter-spacing: 0.33em;
   }
 
   .intro__title {
@@ -1508,11 +1515,6 @@ body.is-searching .focus-hint {
 
   .is-experiencing .intro {
     transform: translateY(calc(-48% + 18px));
-  }
-
-  .intro__eyebrow {
-    margin-bottom: 12px;
-    font-size: 8px;
   }
 
   .intro__title {

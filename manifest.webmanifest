@@ -1,7 +1,7 @@
 {
-  "name": "指尖生花 · Bloom at Your Fingertips",
-  "short_name": "指尖生花",
-  "description": "手机上的可交互手势粒子花朵。上下拖动开合，或开启摄像头，握拳为苞、张掌绽放。",
+  "name": "Flowers for Vivi · Bloom at Your Fingertips",
+  "short_name": "Flowers for Vivi",
+  "description": "Flowers for Vivi —— 一束会开合的光。拖动开合，或开启摄像头，握拳为苞、张掌绽放。",
   "lang": "zh-CN",
   "start_url": "./",
   "scope": "./",

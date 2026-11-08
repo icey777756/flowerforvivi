@@ -102,6 +102,8 @@ button {
   background:
     radial-gradient(ellipse 72% 58% at 50% 33%, rgba(71, 31, 58, 0.48), transparent 68%),
     radial-gradient(ellipse 55% 45% at 22% 62%, rgba(37, 24, 61, 0.26), transparent 72%),
+    radial-gradient(ellipse 64% 52% at 74% 16%, rgba(109, 82, 214, 0.18), transparent 70%),
+    radial-gradient(ellipse 52% 44% at 16% 76%, rgba(88, 62, 190, 0.12), transparent 74%),
     linear-gradient(168deg, #0d0813 0%, #07050c 48%, #040207 100%);
 }
 
@@ -727,6 +729,10 @@ body.has-camera #camera {
   white-space: nowrap;
 }
 
+.dock__hint:empty {
+  display: none;
+}
+
 .dock__hint {
   font-family: var(--sans);
   font-size: 9px;
@@ -855,59 +861,6 @@ body.has-camera #camera {
 .dock__btn[disabled] {
   opacity: 0.45;
   pointer-events: none;
-}
-
-/* --------------------------------- coach -------------------------------- */
-
-.coach {
-  position: fixed;
-  z-index: 21;
-  left: 50%;
-  bottom: calc(var(--dock-space) + 16px + var(--safe-bottom));
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 9px 15px;
-  border: 1px solid rgba(255, 206, 178, 0.2);
-  border-radius: 999px;
-  background: rgba(13, 9, 17, 0.78);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  font-family: var(--sans);
-  font-size: 10px;
-  line-height: 1;
-  letter-spacing: 0.1em;
-  color: rgba(255, 230, 212, 0.8);
-  white-space: nowrap;
-  opacity: 0;
-  transform: translate(-50%, 10px);
-  pointer-events: none;
-  transition:
-    opacity 0.5s var(--ease),
-    transform 0.5s var(--ease);
-}
-
-.coach.is-visible {
-  opacity: 1;
-  transform: translate(-50%, 0);
-  animation: coach-float 3.2s ease-in-out infinite;
-}
-
-.coach__arrows {
-  color: var(--peach);
-  letter-spacing: 0.05em;
-  font-size: 11px;
-}
-
-@keyframes coach-float {
-  0%,
-  100% {
-    transform: translate(-50%, 0);
-  }
-  50% {
-    transform: translate(-50%, -4px);
-  }
 }
 
 /* ----------------------------- focus hint ------------------------------ */
@@ -1445,10 +1398,6 @@ body.is-searching .focus-hint {
     letter-spacing: 0.16em;
   }
 
-  .coach {
-    bottom: calc(188px + 16px);
-  }
-
   .toast {
     bottom: 250px;
     font-size: 12px;
@@ -1647,7 +1596,6 @@ body.is-searching .focus-hint {
     height: 15px;
   }
 
-  .coach,
   .toast {
     display: none;
   }

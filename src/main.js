@@ -25,7 +25,6 @@ const meterFill = document.getElementById("meterFill");
 const meterKnob = document.getElementById("meterKnob");
 const bloomMeter = document.getElementById("bloomMeter");
 const hudHint = document.getElementById("hudHint");
-const coach = document.getElementById("coach");
 const toast = document.getElementById("toast");
 const boot = document.getElementById("boot");
 const bootText = document.getElementById("bootText");
@@ -88,7 +87,6 @@ const drag = {
 let scene = null;
 let overlay = null;
 let toastTimer = 0;
-let coachTimer = 0;
 let handTracker = null;
 let wakeLock = null;
 let loopRunning = false;
@@ -133,20 +131,6 @@ function showToast(message, kind = "", duration = 4200) {
 function hideToast() {
   window.clearTimeout(toastTimer);
   toast.classList.remove("is-visible");
-}
-
-function showCoach(message, duration = 6200) {
-  if (message) coach.lastChild.textContent = message;
-  coach.classList.add("is-visible");
-  window.clearTimeout(coachTimer);
-  coachTimer = window.setTimeout(() => {
-    coach.classList.remove("is-visible");
-  }, duration);
-}
-
-function hideCoach() {
-  window.clearTimeout(coachTimer);
-  coach.classList.remove("is-visible");
 }
 
 function showBoot(message, withNote = false) {
@@ -309,7 +293,6 @@ function toggleBloom() {
   takeOverBloom();
   const current = state.manualBloom ?? state.bloom;
   const next = current > 0.5 ? 0.04 : 0.98;
-  hideCoach();
   setManualBloom(next);
   if (next > 0.5) {
     scene?.triggerBurst(1);
@@ -373,9 +356,6 @@ function enterTouch({ message = "", quiet = false, keepBloom = false } = {}) {
 
   if (message) {
     showToast(message, "", 4600);
-  } else if (!quiet) {
-    // One clear onboarding cue instead of stacking a toast and a coach pill.
-    showCoach("拖动画面 · 让花呼吸", 7000);
   }
 
   updateHud(true);
@@ -394,12 +374,11 @@ function enterAuto({ quiet = false } = {}) {
   updateModeChrome();
   markLive("demo");
   setStatusLabel("AUTO BLOOM");
-  hideCoach();
 
   state.pointer.active = false;
   updateHud(true);
 
-  if (!quiet) showToast("自动呼吸中 · 点「开合」或拖动画面随时接管", "", 4200);
+  if (!quiet) showToast("自动呼吸中 · 点「开合」随时接管", "", 4200);
 }
 
 async function startCameraFlow() {
@@ -416,7 +395,6 @@ async function startCameraFlow() {
   showBoot("正在请求摄像头", false);
   setSearching(false);
   hideToast();
-  hideCoach();
 
   if (overlay) {
     overlay.setVideo(video);
@@ -498,7 +476,6 @@ function beginDrag(event) {
   }
 
   if (state.mode === "auto") takeOverBloom();
-  hideCoach();
   event.preventDefault();
 }
 
@@ -542,7 +519,6 @@ function onMeterPointerDown(event) {
   }
   takeOverBloom();
   bloomMeter.classList.add("is-dragging");
-  hideCoach();
   setManualBloom(meterValueFromX(event.clientX));
   try {
     bloomMeter.setPointerCapture(event.pointerId);
@@ -703,12 +679,12 @@ function onTrackerStatus(status) {
 const HUD_COPY = {
   idle: { label: "等待手掌", en: "WAITING" },
   waiting: { label: "等待手掌", en: "WAITING FOR HAND" },
-  fist: { label: "花苞", en: "CLOSED · FIST" },
-  half: { label: "舒展", en: "OPENING" },
+  fist: { label: "—", en: "CLOSED · FIST" },
+  half: { label: "—", en: "OPENING" },
   open: { label: "送你一朵小葳花", en: "BLOOM · OPEN" },
   touchOpen: { label: "送你一朵小葳花", en: "TOUCH · BLOOM" },
-  touchHalf: { label: "舒展", en: "TOUCH · OPENING" },
-  touchClosed: { label: "花苞", en: "TOUCH · BUD" },
+  touchHalf: { label: "—", en: "TOUCH · OPENING" },
+  touchClosed: { label: "—", en: "TOUCH · BUD" },
   auto: { label: "呼吸", en: "AUTO · BREATH" },
 };
 
@@ -725,7 +701,7 @@ function updateHud(force = false) {
   bloomMeter.setAttribute("aria-valuenow", String(pctValue));
 
   let key = "waiting";
-  let hint = "上下拖动画面 · 开合花朵";
+  let hint = "";
 
   if (!state.experience) {
     key = "idle";
@@ -737,15 +713,13 @@ function updateHud(force = false) {
         : state.bloom > 0.28
           ? "touchHalf"
           : "touchClosed";
-    hint = "上下拖动 · 开合花朵";
+    hint = "";
   } else if (state.mode === "auto") {
     key = "auto";
     hint = "自动呼吸中 · 点「开合」接管";
   } else if (state.mode === "camera" && state.hasHand && state.gesture) {
     key = state.gesture.state;
-    if (key === "fist") hint = "花苞正在收拢";
-    else if (key === "open") hint = "花瓣随指尖舒展";
-    else hint = "缓缓张开手掌";
+    if (key === "half") hint = "缓缓张开手掌";
   } else if (state.mode === "camera") {
     hint = "将手掌放入画面";
   }
@@ -916,7 +890,7 @@ function wireEvents() {
   autoButton.addEventListener("click", () => {
     if (state.mode === "auto") {
       enterTouch({ quiet: true, keepBloom: true });
-      showToast("已接管 · 上下拖动画面开合", "", 2400);
+      showToast("已接管 · 用「开合」继续调整", "", 2400);
       return;
     }
     enterAuto();

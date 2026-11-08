@@ -45,7 +45,8 @@ const LAYERS = [
     cup: 0.35,
     offset: 0.12,
     brightness: 1.06,
-    palette: ["#ffbc6b", "#ff8f72", "#ff4b83", "#bc7bff"],
+    palette: ["#ffbc6b", "#ff8f72", "#ff4b83", "#c08bff"],
+    edgeTip: "#6d5bff",
   },
   {
     index: 1,
@@ -60,7 +61,8 @@ const LAYERS = [
     cup: 0.4,
     offset: 0.46,
     brightness: 1.1,
-    palette: ["#ffd58c", "#ff9e74", "#ff5f91", "#ce94ff"],
+    palette: ["#ffd58c", "#ff9e74", "#ff5f91", "#d0a2ff"],
+    edgeTip: "#7b63ff",
   },
   {
     index: 2,
@@ -75,7 +77,8 @@ const LAYERS = [
     cup: 0.46,
     offset: 0.08,
     brightness: 1.14,
-    palette: ["#fff0bd", "#ffc27d", "#ff8e9f", "#e2b7ff"],
+    palette: ["#fff0bd", "#ffc27d", "#ff8e9f", "#e0baff"],
+    edgeTip: "#8b74ff",
   },
   {
     index: 3,
@@ -90,7 +93,8 @@ const LAYERS = [
     cup: 0.5,
     offset: 0.32,
     brightness: 1.2,
-    palette: ["#fff8d0", "#ffd38e", "#ffafa6", "#f3d7ff"],
+    palette: ["#fff8d0", "#ffd38e", "#ffafa6", "#f0d6ff"],
+    edgeTip: "#a088ff",
   },
 ];
 
@@ -107,12 +111,14 @@ function createPetalGeometry(quality = 1) {
   const delays = [];
   const glows = [];
   const cores = [];
+  const edges = [];
 
   const color = new THREE.Color();
   const colorBud = new THREE.Color();
   const rootColor = new THREE.Color();
   const tipColor = new THREE.Color();
   const edgeColor = new THREE.Color();
+  const edgeTipColor = new THREE.Color();
   const warm = new THREE.Color("#ffbf83");
   const rose = new THREE.Color("#ff7e9d");
   const white = new THREE.Color("#fff7e4");
@@ -121,6 +127,7 @@ function createPetalGeometry(quality = 1) {
     rootColor.set(spec.palette[0]);
     tipColor.set(spec.palette[2]);
     edgeColor.set(spec.palette[3]);
+    edgeTipColor.set(spec.edgeTip);
 
     for (let petal = 0; petal < spec.count; petal += 1) {
       const phi =
@@ -186,12 +193,18 @@ function createPetalGeometry(quality = 1) {
         );
 
         const tipMix = smoothstep(0.12, 1, u);
+        // The rim is a gradient: lavender at the base of the petal, deep
+        // periwinkle at the tip, so the whole silhouette glows violet.
+        const rim = Math.pow(Math.abs(v), 1.28) * 0.94;
         color
           .copy(rootColor)
           .lerp(tipColor, smoothstep(0.08, 0.96, u))
-          .lerp(edgeColor, Math.pow(Math.abs(v), 1.7) * 0.4);
-        if (rng() > 0.965) color.lerp(white, 0.55);
-        color.multiplyScalar((0.72 + rng() * 0.56) * spec.brightness);
+          .lerp(edgeColor, rim)
+          .lerp(edgeTipColor, rim * smoothstep(0.28, 1, u) * 0.85);
+        if (rng() > 0.965) color.lerp(white, 0.5);
+        color.multiplyScalar(
+          (0.72 + rng() * 0.56) * spec.brightness * (1 + rim * 0.18),
+        );
         colorsOpen.push(color.r, color.g, color.b);
 
         colorBud
@@ -208,6 +221,7 @@ function createPetalGeometry(quality = 1) {
         delays.push(spec.index * 0.07 + rng() * 0.58);
         glows.push(0.24 + rng() * 0.34 + edge * 0.36);
         cores.push(0);
+        edges.push(rim);
       }
     }
   }
@@ -268,6 +282,7 @@ function createPetalGeometry(quality = 1) {
     delays.push(rng() * 0.34);
     glows.push(0.48 + rng() * 0.38);
     cores.push(1);
+    edges.push(0);
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -292,6 +307,7 @@ function createPetalGeometry(quality = 1) {
   geometry.setAttribute("aDelay", new THREE.Float32BufferAttribute(delays, 1));
   geometry.setAttribute("aGlow", new THREE.Float32BufferAttribute(glows, 1));
   geometry.setAttribute("aCore", new THREE.Float32BufferAttribute(cores, 1));
+  geometry.setAttribute("aEdge", new THREE.Float32BufferAttribute(edges, 1));
   geometry.computeBoundingSphere();
 
   return geometry;
@@ -315,10 +331,12 @@ const PETAL_VERTEX = /* glsl */ `
   attribute float aDelay;
   attribute float aGlow;
   attribute float aCore;
+  attribute float aEdge;
 
   varying vec3 vColor;
   varying float vAlpha;
   varying float vSeed;
+  varying float vEdge;
 
   void main() {
     float denom = max(0.001, 1.0 - aDelay * 0.28);
@@ -368,6 +386,7 @@ const PETAL_VERTEX = /* glsl */ `
     centerFade = mix(centerFade, 1.0, aCore);
     vAlpha *= centerFade;
     vSeed = aSeed;
+    vEdge = aEdge;
 
     gl_Position = projectionMatrix * mvPosition;
   }
@@ -377,6 +396,7 @@ const PETAL_FRAGMENT = /* glsl */ `
   varying vec3 vColor;
   varying float vAlpha;
   varying float vSeed;
+  varying float vEdge;
 
   void main() {
     vec2 centered = gl_PointCoord - vec2(0.5);
@@ -388,7 +408,9 @@ const PETAL_FRAGMENT = /* glsl */ `
     float alpha = vAlpha * smoothstep(1.0, 0.42, d);
 
     vec3 color = vColor * (0.38 + core * 0.86 + glow * 0.15);
-    color += vec3(1.0, 0.78, 0.62) * pow(core, 7.0) * 0.18;
+    vec3 sparkle = mix(vec3(1.0, 0.78, 0.62), vec3(0.80, 0.72, 1.0), vEdge);
+    color += sparkle * pow(core, 7.0) * 0.18;
+    color += vec3(0.52, 0.40, 1.0) * glow * vEdge * 0.35;
 
     gl_FragColor = vec4(color, alpha);
   }
@@ -406,12 +428,19 @@ const STAR_VERTEX = /* glsl */ `
 
   void main() {
     vec3 pos = position;
-    pos.y += sin(uTime * 0.12 + aPhase * 6.28) * 0.08;
+    // A slow, almost imperceptible drift keeps the sky alive without
+    // looking like a spinning skybox.
+    pos.x += sin(uTime * 0.035 + aPhase * 21.0) * 0.55;
+    pos.y += sin(uTime * 0.12 + aPhase * 6.28) * 0.1;
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-    gl_PointSize = clamp(aSize * uPixelRatio * (1.0 + sin(uTime * 0.7 + aPhase * 9.0) * 0.28), 1.0, 4.2);
+    gl_PointSize = clamp(
+      aSize * uPixelRatio * (1.0 + sin(uTime * 0.7 + aPhase * 9.0) * 0.35),
+      1.0,
+      6.0
+    );
     gl_Position = projectionMatrix * mvPosition;
     vColor = aColor;
-    vAlpha = 0.3 + 0.7 * (sin(uTime * 0.5 + aPhase * 17.0) * 0.5 + 0.5);
+    vAlpha = 0.42 + 0.58 * (sin(uTime * 0.5 + aPhase * 17.0) * 0.5 + 0.5);
   }
 `;
 
@@ -423,7 +452,7 @@ const STAR_FRAGMENT = /* glsl */ `
     float d = length(gl_PointCoord - vec2(0.5)) * 2.0;
     if (d > 1.0) discard;
     float a = smoothstep(1.0, 0.0, d);
-    gl_FragColor = vec4(vColor * (0.75 + a * 0.7), a * vAlpha * 0.72);
+    gl_FragColor = vec4(vColor * (0.85 + a * 0.7), a * vAlpha * 0.86);
   }
 `;
 
@@ -472,7 +501,7 @@ function createOrbTexture() {
 
 function createStarfield() {
   const rng = mulberry32(0xa17f00);
-  const count = 520;
+  const count = 1000;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const sizes = new Float32Array(count);
@@ -482,6 +511,7 @@ function createStarfield() {
     new THREE.Color("#ffc0a3"),
     new THREE.Color("#d8c5ff"),
     new THREE.Color("#fff7ed"),
+    new THREE.Color("#b9a3ff"),
   ];
   const color = new THREE.Color();
 
@@ -496,11 +526,11 @@ function createStarfield() {
 
     color
       .copy(palette[Math.floor(rng() * palette.length)])
-      .multiplyScalar(0.55 + rng() * 0.65);
+      .multiplyScalar(0.72 + rng() * 0.68);
     colors[i * 3] = color.r;
     colors[i * 3 + 1] = color.g;
     colors[i * 3 + 2] = color.b;
-    sizes[i] = 0.4 + Math.pow(rng(), 2.2) * 1.7;
+    sizes[i] = 0.55 + Math.pow(rng(), 2.1) * 2.4;
     phases[i] = rng();
   }
 
@@ -526,6 +556,95 @@ function createStarfield() {
   points.frustumCulled = false;
   points.renderOrder = -2;
   return points;
+}
+
+
+function textureFromCanvas(canvas) {
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function createSparkleTexture() {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const c = size / 2;
+  ctx.globalCompositeOperation = "lighter";
+
+  const halo = ctx.createRadialGradient(c, c, 0, c, c, c);
+  halo.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+  halo.addColorStop(0.07, "rgba(235, 230, 255, 0.55)");
+  halo.addColorStop(0.28, "rgba(160, 140, 255, 0.16)");
+  halo.addColorStop(1, "rgba(110, 90, 255, 0)");
+  ctx.fillStyle = halo;
+  ctx.fillRect(0, 0, size, size);
+
+  const ray = (angle, length, width, alpha) => {
+    ctx.save();
+    ctx.translate(c, c);
+    ctx.rotate(angle);
+    const grad = ctx.createLinearGradient(0, 0, length, 0);
+    grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+    grad.addColorStop(0.3, `rgba(214, 204, 255, ${alpha * 0.35})`);
+    grad.addColorStop(1, "rgba(150, 130, 255, 0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(0, -width);
+    ctx.lineTo(length, 0);
+    ctx.lineTo(0, width);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
+
+  for (let i = 0; i < 4; i += 1) ray((i * Math.PI) / 2, c * 0.96, 1.2, 0.55);
+  for (let i = 0; i < 4; i += 1) {
+    ray(Math.PI / 4 + (i * Math.PI) / 2, c * 0.55, 0.8, 0.22);
+  }
+
+  return textureFromCanvas(canvas);
+}
+
+function createMeteorTexture() {
+  const width = 256;
+  const height = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, width, height);
+  ctx.globalCompositeOperation = "lighter";
+
+  const streak = ctx.createLinearGradient(0, 0, 236, 0);
+  streak.addColorStop(0, "rgba(140, 120, 255, 0)");
+  streak.addColorStop(0.4, "rgba(190, 175, 255, 0.5)");
+  streak.addColorStop(0.8, "rgba(242, 240, 255, 0.96)");
+  streak.addColorStop(1, "rgba(255, 255, 255, 1)");
+  ctx.fillStyle = streak;
+  ctx.beginPath();
+  ctx.moveTo(0, height / 2 - 0.6);
+  ctx.quadraticCurveTo(150, height / 2 - 2.2, 236, height / 2 - 3.4);
+  ctx.lineTo(246, height / 2 + 0.2);
+  ctx.lineTo(236, height / 2 + 3.4);
+  ctx.quadraticCurveTo(150, height / 2 + 2.2, 0, height / 2 + 0.6);
+  ctx.closePath();
+  ctx.fill();
+
+  const head = ctx.createRadialGradient(238, height / 2, 0, 238, height / 2, 17);
+  head.addColorStop(0, "rgba(255, 255, 255, 1)");
+  head.addColorStop(0.18, "rgba(228, 222, 255, 0.8)");
+  head.addColorStop(0.55, "rgba(156, 136, 255, 0.24)");
+  head.addColorStop(1, "rgba(120, 100, 255, 0)");
+  ctx.fillStyle = head;
+  ctx.fillRect(0, 0, width, height);
+
+  return textureFromCanvas(canvas);
 }
 
 /* ------------------------------------------------------------------ *
@@ -608,7 +727,19 @@ export class BloomScene {
     this.root.add(this.halo);
 
     this.starfield = createStarfield();
+    this.starfield.rotation.y = 0.16;
     this.scene.add(this.starfield);
+
+    this._sparkleTexture = createSparkleTexture();
+    this.sparkles = [];
+    this._buildSparkles();
+    this._buildSkyStars();
+
+    this._meteorTexture = createMeteorTexture();
+    this.meteors = [];
+    this._nextMeteorAt = 2.5 + Math.random() * 3.5;
+    this._meteorPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 6);
+    this._meteorNdc = new THREE.Vector2();
 
     const geometry = createPetalGeometry(this.quality);
     this.petalMaterial = new THREE.ShaderMaterial({
@@ -713,9 +844,14 @@ export class BloomScene {
     this._basePointScale = Math.max(14, 39 * (height / 900));
     this.petalMaterial.uniforms.uPointScale.value = this._basePointScale;
     this.starfield.material.uniforms.uPixelRatio.value = this._dpr;
+    if (this.skyStars) {
+      this.skyStars.material.uniforms.uPixelRatio.value = this._dpr;
+    }
     this.pointerOrb.visible = false;
     this._pointerReady = false;
     this._focusDirty = true;
+    this._repositionSkyStars();
+    this._repositionSparkles();
   }
 
   setFocus(x, y = 0.5) {
@@ -778,6 +914,245 @@ export class BloomScene {
     return result;
   }
 
+  _buildSkyStars() {
+    const rng = mulberry32(0x51a9c0);
+    const count = 170;
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+    const phases = new Float32Array(count);
+    const palette = [
+      new THREE.Color("#fff8ef"),
+      new THREE.Color("#e9dcff"),
+      new THREE.Color("#ffd9e6"),
+      new THREE.Color("#bca8ff"),
+    ];
+    const color = new THREE.Color();
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 18);
+    const hit = new THREE.Vector3();
+    this._skyNdc = [];
+    this.camera.updateMatrixWorld(true);
+
+    for (let i = 0; i < count; i += 1) {
+      const ndcX = -0.95 + rng() * 1.9;
+      const ndcY = -0.92 + rng() * 1.82;
+      this._skyNdc.push(new THREE.Vector2(ndcX, ndcY));
+      this._raycaster.setFromCamera(
+        this._meteorNdc ? this._meteorNdc.set(ndcX, ndcY) : new THREE.Vector2(ndcX, ndcY),
+        this.camera,
+      );
+      if (!this._raycaster.ray.intersectPlane(plane, hit)) {
+        hit.set(0, 0, -18);
+      }
+      positions[i * 3] = hit.x;
+      positions[i * 3 + 1] = hit.y;
+      positions[i * 3 + 2] = hit.z;
+
+      color
+        .copy(palette[Math.floor(rng() * palette.length)])
+        .multiplyScalar(0.8 + rng() * 0.5);
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+      sizes[i] = 1.5 + Math.pow(rng(), 1.7) * 3.2;
+      phases[i] = rng();
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+    geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
+
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uPixelRatio: { value: 1 },
+      },
+      vertexShader: STAR_VERTEX,
+      fragmentShader: STAR_FRAGMENT,
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const points = new THREE.Points(geometry, material);
+    points.frustumCulled = false;
+    points.renderOrder = -3;
+    this.scene.add(points);
+    this.skyStars = points;
+  }
+
+  _buildSparkles() {
+    const rng = mulberry32(0x5a17c3);
+    this.camera.updateMatrixWorld(true);
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 16);
+    const ndc = new THREE.Vector2();
+    const hit = new THREE.Vector3();
+
+    for (let i = 0; i < 22; i += 1) {
+      // Place the flares through the camera so they always land in the
+      // visible sky instead of being wasted off-screen.
+      ndc.set(-0.86 + rng() * 1.72, -0.62 + rng() * 1.56);
+      this._raycaster.setFromCamera(ndc, this.camera);
+      if (!this._raycaster.ray.intersectPlane(plane, hit)) {
+        hit.set(0, 0, -16);
+      }
+
+      const scale = 0.28 + rng() * 0.78;
+      const material = new THREE.SpriteMaterial({
+        map: this._sparkleTexture,
+        color: rng() > 0.42 ? 0xf6f2ff : 0xcdbaff,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        depthTest: true,
+        blending: THREE.AdditiveBlending,
+        rotation: rng() * Math.PI,
+      });
+      const sprite = new THREE.Sprite(material);
+      sprite.position.copy(hit);
+      sprite.scale.set(scale, scale, 1);
+      sprite.renderOrder = -1;
+      this.scene.add(sprite);
+      this.sparkles.push({
+        sprite,
+        origin: hit.clone(),
+        ndc: ndc.clone(),
+        phase: rng() * Math.PI * 2,
+        speed: 0.22 + rng() * 0.42,
+        base: 0.16 + rng() * 0.3,
+        scale,
+      });
+    }
+  }
+
+  _repositionSkyStars() {
+    if (!this.skyStars || !this._skyNdc) return;
+    this.camera.updateMatrixWorld(true);
+    const positions = this.skyStars.geometry.attributes.position;
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 18);
+    const hit = new THREE.Vector3();
+    for (let i = 0; i < this._skyNdc.length; i += 1) {
+      this._raycaster.setFromCamera(this._skyNdc[i], this.camera);
+      if (this._raycaster.ray.intersectPlane(plane, hit)) {
+        positions.setXYZ(i, hit.x, hit.y, hit.z);
+      }
+    }
+    positions.needsUpdate = true;
+  }
+
+  _repositionSparkles() {
+    if (!this.sparkles || !this.sparkles.length) return;
+    this.camera.updateMatrixWorld(true);
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 16);
+    const hit = new THREE.Vector3();
+    for (const sparkle of this.sparkles) {
+      this._raycaster.setFromCamera(sparkle.ndc, this.camera);
+      if (this._raycaster.ray.intersectPlane(plane, hit)) {
+        sparkle.origin.copy(hit);
+        sparkle.sprite.position.copy(hit);
+      }
+    }
+  }
+
+  _updateSparkles(dt, time) {
+    for (const sparkle of this.sparkles) {
+      const pulse = 0.5 + 0.5 * Math.sin(time * sparkle.speed + sparkle.phase);
+      sparkle.sprite.material.opacity = sparkle.base * (0.45 + pulse * 0.55);
+      sparkle.sprite.material.rotation += dt * 0.06;
+      const scale = sparkle.scale * (0.86 + pulse * 0.18);
+      sparkle.sprite.scale.set(scale, scale, 1);
+      sparkle.sprite.position.x =
+        sparkle.origin.x + Math.sin(time * 0.045 + sparkle.phase) * 0.25;
+      sparkle.sprite.position.y =
+        sparkle.origin.y + Math.cos(time * 0.035 + sparkle.phase) * 0.18;
+    }
+  }
+
+  _worldOnMeteorPlane(x, y, target) {
+    this._raycaster.setFromCamera(this._meteorNdc.set(x, y), this.camera);
+    if (!this._raycaster.ray.intersectPlane(this._meteorPlane, target)) {
+      target.set(0, 6, -6);
+    }
+    return target;
+  }
+
+  spawnMeteor() {
+    if (!this._meteorTexture) return;
+
+    this.camera.updateMatrixWorld(true);
+    const startNdcX = 0.3 + Math.random() * 0.72;
+    const startNdcY = 0.72 + Math.random() * 0.26;
+    const endNdcX = startNdcX - 0.95 - Math.random() * 0.35;
+    const endNdcY = startNdcY - 0.24 - Math.random() * 0.24;
+
+    const start = this._worldOnMeteorPlane(
+      startNdcX,
+      startNdcY,
+      new THREE.Vector3(),
+    );
+    const end = this._worldOnMeteorPlane(
+      endNdcX,
+      endNdcY,
+      new THREE.Vector3(),
+    );
+    const dir = end.sub(start).normalize();
+    const length = 3.0 + Math.random() * 1.4;
+
+    const material = new THREE.SpriteMaterial({
+      map: this._meteorTexture,
+      color: 0xe2dcff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: true,
+      blending: THREE.AdditiveBlending,
+      rotation: Math.atan2(endNdcY - startNdcY, endNdcX - startNdcX),
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.copy(start);
+    sprite.scale.set(length, length * 0.15, 1);
+    sprite.renderOrder = 1;
+    this.scene.add(sprite);
+
+    this.meteors.push({
+      sprite,
+      dir,
+      age: 0,
+      life: 1.5 + Math.random() * 0.6,
+      speed: 4.2 + Math.random() * 1.9,
+      base: 0.85 + Math.random() * 0.15,
+    });
+  }
+
+  _updateMeteors(dt, time) {
+    if (time >= this._nextMeteorAt) {
+      this.spawnMeteor();
+      if (Math.random() < 0.28) this.spawnMeteor();
+      this._nextMeteorAt = time + 8 + Math.random() * 11;
+    }
+
+    for (let i = this.meteors.length - 1; i >= 0; i -= 1) {
+      const meteor = this.meteors[i];
+      meteor.age += dt;
+      meteor.sprite.position.addScaledVector(meteor.dir, meteor.speed * dt);
+
+      const t = meteor.age / meteor.life;
+      const fadeIn = Math.min(1, t / 0.12);
+      const fadeOut = 1 - Math.max(0, (t - 0.55) / 0.45);
+      meteor.sprite.material.opacity =
+        meteor.base * Math.max(0, Math.min(fadeIn, fadeOut));
+
+      if (t >= 1) {
+        this.scene.remove(meteor.sprite);
+        meteor.sprite.material.dispose();
+        this.meteors.splice(i, 1);
+      }
+    }
+  }
+
   update(dt, input) {
     const {
       bloom: rawBloom = 0.4,
@@ -805,6 +1180,12 @@ export class BloomScene {
     this.petalMaterial.uniforms.uBloom.value = bloom;
     this.petalMaterial.uniforms.uBurst.value = this.burst;
     this.starfield.material.uniforms.uTime.value = this._time;
+    this.starfield.rotation.y += safeDt * 0.004;
+    this._updateSparkles(safeDt, this._time);
+    this._updateMeteors(safeDt, this._time);
+    if (this.skyStars) {
+      this.skyStars.material.uniforms.uTime.value = this._time;
+    }
     this.bloomPass.strength = 0.2 + bloom * 0.06 + this.burst * 0.28;
     this.bloomPass.radius = 0.28 + bloom * 0.06;
 
@@ -924,6 +1305,14 @@ export class BloomScene {
     this.petalMaterial.dispose();
     this.starfield.geometry.dispose();
     this.starfield.material.dispose();
+    if (this.skyStars) {
+      this.skyStars.geometry.dispose();
+      this.skyStars.material.dispose();
+    }
+    this._sparkleTexture.dispose();
+    this._meteorTexture.dispose();
+    for (const sparkle of this.sparkles) sparkle.sprite.material.dispose();
+    for (const meteor of this.meteors) meteor.sprite.material.dispose();
     this.composer.dispose();
     this.renderer.dispose();
   }

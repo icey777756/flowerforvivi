@@ -13,7 +13,7 @@ Windows：
   http://127.0.0.1:5178/
 
 线上地址：
-  https://icey777756.github.io/fingertip-bloom/
+  https://icey777756.github.io/flowerforvivi/
 
 手机上体验：
   - 竖屏打开，页面会按手机重新排版。

@@ -4,7 +4,7 @@
 
 上下拖动画面让花开放或收拢，轻点一下开合；也可以开启前置摄像头，**握拳为苞，张掌绽放**，食指指尖还会牵引光点与附近粒子。
 
-**线上体验：<https://icey777756.github.io/fingertip-bloom/>**
+**线上体验：<https://icey777756.github.io/flowerforvivi/>**
 
 <p align="center">
   <img src="docs/preview-mobile.jpg" width="26%" alt="手机端首屏" />
@@ -106,7 +106,7 @@ gh api -X POST repos/<owner>/<repo>/pages \
 ## 目录结构
 
 ```text
-fingertip-bloom/
+flowerforvivi/
 ├── index.html               # 页面结构、meta、import map
 ├── manifest.webmanifest     # PWA 清单
 ├── assets/                  # 应用图标（SVG + PNG）

@@ -1,13 +1,13 @@
 {
-  "name": "fingertip-bloom",
+  "name": "flowerforvivi",
   "version": "2.0.0",
   "private": true,
   "type": "module",
   "description": "Flower for Vivi · 手机优先的可交互手势粒子花朵（MediaPipe Hands + Three.js）",
-  "homepage": "https://icey777756.github.io/fingertip-bloom/",
+  "homepage": "https://icey777756.github.io/flowerforvivi/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/icey777756/fingertip-bloom.git"
+    "url": "https://github.com/icey777756/flowerforvivi.git"
   },
   "scripts": {
     "start": "node server.mjs",

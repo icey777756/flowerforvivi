@@ -14,7 +14,7 @@ if ! gh auth status >/dev/null 2>&1; then
 fi
 
 OWNER="$(gh api user --jq .login)"
-REPO="$(basename "$PWD")"
+REPO="flowerforvivi"
 URL="https://${OWNER}.github.io/${REPO}/"
 
 git add -A

@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { BloomScene } from "./flower.js?v=10";
-import { HandTracker } from "./hand-tracker.js?v=10";
-import { HandOverlay } from "./hand-overlay.js?v=10";
+import { BloomScene } from "./flower.js?v=11";
+import { HandTracker } from "./hand-tracker.js?v=11";
+import { HandOverlay } from "./hand-overlay.js?v=11";
 
 /* ------------------------------------------------------------------ *
  * DOM
@@ -71,6 +71,7 @@ const state = {
     moved: false,
   },
   pointerPinch: 0.5,
+  lastHandBloom: null,
   lastHudUpdate: 0,
 };
 
@@ -336,6 +337,7 @@ function enterTouch({ message = "", quiet = false, keepBloom = false } = {}) {
   state.manualBloom = keepBloom ? clamp(state.bloom, 0, 1) : null;
   state.demoOpen = keepBloom ? state.bloom > 0.5 : true;
   state.pointerPinch = 0.45;
+  state.lastHandBloom = null;
 
   revealExperience();
   updateModeChrome();
@@ -369,6 +371,7 @@ function enterAuto({ quiet = false } = {}) {
   state.mode = "auto";
   state.manualBloom = null;
   state.pointerPinch = 0.5;
+  state.lastHandBloom = null;
 
   revealExperience();
   updateModeChrome();
@@ -388,6 +391,7 @@ async function startCameraFlow() {
   state.cameraStarting = true;
   state.mode = "camera";
   state.manualBloom = null;
+  state.lastHandBloom = null;
   revealExperience();
   updateModeChrome();
   markLive("camera");
@@ -639,6 +643,11 @@ function onHandResults({ landmarks, gesture }) {
   state.landmarks = landmarks;
   state.gesture = gesture;
   state.pointerPinch = gesture.pinch;
+  state.lastHandBloom = clamp(
+    0.025 + smoothstep(0.04, 0.9, gesture.openness) * 0.955,
+    0,
+    1,
+  );
   setSearching(false);
 
   const indexTip = getVideoViewportPoint(gesture.indexTip);
@@ -760,7 +769,18 @@ function chooseTargetBloom(time) {
   if (state.mode === "camera") {
     if (state.hasHand && state.gesture) {
       const mapped = smoothstep(0.04, 0.9, state.gesture.openness);
-      return clamp(0.025 + mapped * 0.955 + breathing, 0, 1);
+      const target = clamp(0.025 + mapped * 0.955, 0, 1);
+      state.lastHandBloom = target;
+      return clamp(target + breathing, 0, 1);
+    }
+    // Grace hold: when the hand slips out for a few frames, keep the last
+    // pose instead of collapsing to the idle bud.
+    if (
+      state.cameraReady &&
+      state.lastHandBloom !== null &&
+      performance.now() - state.lastHandAt < 1200
+    ) {
+      return clamp(state.lastHandBloom + breathing * 0.5, 0, 1);
     }
     return 0.17 + Math.sin(time * 0.45) * 0.015;
   }
@@ -824,7 +844,7 @@ function frame(dt, time) {
     state.mode === "camera" &&
     state.cameraReady &&
     state.hasHand &&
-    performance.now() - state.lastHandAt > 650
+    performance.now() - state.lastHandAt > 1200
   ) {
     state.hasHand = false;
     state.gesture = null;

@@ -254,8 +254,8 @@ export class HandTracker {
       modelComplexity: IS_COMPACT ? 0 : 1,
       // Lower confidence + landmark smoothing keeps the hand from flickering
       // out every few frames on phone cameras.
-      minDetectionConfidence: IS_COMPACT ? 0.55 : 0.6,
-      minTrackingConfidence: IS_COMPACT ? 0.55 : 0.6,
+      minDetectionConfidence: IS_COMPACT ? 0.6 : 0.62,
+      minTrackingConfidence: IS_COMPACT ? 0.55 : 0.58,
       selfieMode: false,
     });
     this.hands.onResults((results) => this._handleResults(results));
@@ -388,14 +388,20 @@ export class HandTracker {
       return this._smoothedLandmarks;
     }
 
-    const alpha = 1 - Math.exp(-dt * 18);
     const smoothed = this._smoothedLandmarks;
     for (let i = 0; i < landmarks.length; i += 1) {
       const point = landmarks[i];
       const target = smoothed[i];
-      target.x += (point.x - target.x) * alpha;
-      target.y += (point.y - target.y) * alpha;
-      target.z += ((point.z || 0) - target.z) * alpha;
+      const dx = point.x - target.x;
+      const dy = point.y - target.y;
+      const dz = (point.z || 0) - target.z;
+      // One-euro style: heavy smoothing while the finger is still, almost
+      // no lag once it moves. This kills idle jitter without rubber-banding.
+      const speed = Math.hypot(dx, dy) / Math.max(dt, 0.008);
+      const alpha = Math.min(0.82, Math.max(0.22, 0.22 + speed * 0.5));
+      target.x += dx * alpha;
+      target.y += dy * alpha;
+      target.z += dz * alpha;
     }
     return smoothed;
   }
@@ -433,7 +439,9 @@ export class HandTracker {
     if (!landmarks) {
       // Hold the last pose for ~300ms so one missed frame does not tear down
       // the hand state and make the flower snap.
-      if (now - this._lastSeenAt > 300) {
+      // Hold the pose for 600ms. A single missed detection must not clear
+      // the skeleton, the HUD and the bloom target.
+      if (now - this._lastSeenAt > 600) {
         this._openSmooth = null;
         this._smoothedLandmarks = null;
         this._state = null;
@@ -454,7 +462,7 @@ export class HandTracker {
     if (this._openSmooth === null) {
       this._openSmooth = analyzed.openness;
     } else {
-      const response = analyzed.openness > this._openSmooth ? 10 : 7;
+      const response = analyzed.openness > this._openSmooth ? 8 : 6;
       this._openSmooth +=
         (analyzed.openness - this._openSmooth) *
         (1 - Math.exp(-dt * response));

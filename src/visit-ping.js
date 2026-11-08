@@ -83,6 +83,15 @@
   // never by us; we keep only country / province / city in the message.
   const LOCATION_PROVIDERS = [
     {
+      // Chinese city names, no key, works from the browser.
+      url: "https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=zh",
+      parse: (data) => ({
+        country: data.countryName,
+        region: data.principalSubdivision,
+        city: data.city || data.locality,
+      }),
+    },
+    {
       url: "https://ipapi.co/json/",
       parse: (data) => ({
         country: data.country_name,

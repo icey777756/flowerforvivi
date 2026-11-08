@@ -18,6 +18,8 @@
   --hair-warm: rgba(255, 190, 158, 0.28);
   --serif: "Optima", "Iowan Old Style", "Palatino Linotype", "Songti SC",
     "Noto Serif CJK SC", "STSong", "SimSun", serif;
+  --display: "Kaiti SC", "STKaiti", "KaiTi", "Kaiti TC", "Songti SC",
+    "Noto Serif CJK SC", serif;
   --sans: "Avenir Next", "Futura", "Century Gothic", "Helvetica Neue",
     "PingFang SC", "Microsoft YaHei", sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -415,6 +417,7 @@ body.has-camera #camera {
 
 .intro__title {
   margin: 0;
+  font-family: var(--display);
   font-size: clamp(2.5rem, 11vw, 3.1rem);
   font-weight: 400;
   line-height: 1.16;
@@ -724,6 +727,7 @@ body.has-camera #camera {
 }
 
 .dock__state > span:first-child {
+  font-family: var(--display);
   font-size: 17px;
   line-height: 1.3;
   letter-spacing: 0.1em;

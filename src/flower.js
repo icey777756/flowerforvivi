@@ -470,51 +470,6 @@ const STAR_FRAGMENT = /* glsl */ `
   }
 `;
 
-const BOKEH_VERTEX = /* glsl */ `
-  uniform float uTime;
-  uniform float uPixelRatio;
-  attribute float aSize;
-  attribute float aPhase;
-  attribute float aBright;
-  attribute vec3 aColor;
-
-  varying vec3 vColor;
-  varying float vAlpha;
-
-  void main() {
-    vec3 pos = position;
-    pos.x += sin(uTime * 0.03 + aPhase * 31.0) * 0.6;
-    pos.y += cos(uTime * 0.025 + aPhase * 17.0) * 0.4;
-
-    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-    gl_PointSize = clamp(
-      aSize * uPixelRatio * (0.96 + 0.04 * sin(uTime * 0.3 + aPhase * 9.0)),
-      2.0,
-      96.0
-    );
-    gl_Position = projectionMatrix * mvPosition;
-    vColor = aColor;
-    vAlpha = aBright * (0.7 + 0.3 * sin(uTime * 0.22 + aPhase * 7.0));
-  }
-`;
-
-const BOKEH_FRAGMENT = /* glsl */ `
-  varying vec3 vColor;
-  varying float vAlpha;
-
-  void main() {
-    vec2 centered = gl_PointCoord - vec2(0.5);
-    float d = length(centered) * 2.0;
-    if (d > 1.0) discard;
-
-    float disc = smoothstep(1.0, 0.55, d);
-    float rim = smoothstep(0.9, 1.0, d) * 0.22;
-    float alpha = vAlpha * (disc * 0.55 + rim);
-
-    gl_FragColor = vec4(vColor, alpha);
-  }
-`;
-
 function makeCanvasTexture(draw, size = 256) {
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -596,7 +551,7 @@ function createStarfield() {
     colors[i * 3 + 2] = color.b;
 
     sizes[i] =
-      (0.6 + Math.pow(rng(), 2.4) * 5.6) * (1.12 - depth * 0.45);
+      (0.55 + Math.pow(rng(), 2.4) * 4.7) * (1.12 - depth * 0.45);
     brights[i] =
       (0.26 + Math.pow(rng(), 1.15) * 0.74) * (1.05 - depth * 0.28);
     twinkles[i] = 0.15 + rng() * 0.95;
@@ -713,7 +668,7 @@ export class BloomScene {
     this.scene.add(this.starfield);
 
     this._buildSkyStars();
-    this._buildBokeh();
+    this._buildOrbitStars();
 
     const geometry = createPetalGeometry(this.quality);
     this.petalMaterial = new THREE.ShaderMaterial({
@@ -821,14 +776,13 @@ export class BloomScene {
     if (this.skyStars) {
       this.skyStars.material.uniforms.uPixelRatio.value = this._dpr;
     }
-    if (this.bokeh) {
-      this.bokeh.material.uniforms.uPixelRatio.value = this._dpr;
+    if (this.orbitStars) {
+      this.orbitStars.material.uniforms.uPixelRatio.value = this._dpr;
     }
     this.pointerOrb.visible = false;
     this._pointerReady = false;
     this._focusDirty = true;
     this._repositionSkyStars();
-    this._repositionBokeh();
   }
 
   setFocus(x, y = 0.5) {
@@ -933,7 +887,7 @@ export class BloomScene {
       colors[i * 3] = color.r;
       colors[i * 3 + 1] = color.g;
       colors[i * 3 + 2] = color.b;
-      sizes[i] = (0.65 + Math.pow(rng(), 2.1) * 5.2) * (0.9 + (ndcY + 1) * 0.08);
+      sizes[i] = (0.6 + Math.pow(rng(), 2.1) * 4.3) * (0.9 + (ndcY + 1) * 0.08);
       brights[i] = 0.32 + Math.pow(rng(), 1.1) * 0.68;
       twinkles[i] = 0.15 + rng() * 0.9;
       phases[i] = rng();
@@ -982,46 +936,43 @@ export class BloomScene {
     positions.needsUpdate = true;
   }
 
-  _buildBokeh() {
-    const rng = mulberry32(0x7b0e11);
-    const count = 26;
+  _buildOrbitStars() {
+    const rng = mulberry32(0x2a61f0);
+    const count = 120;
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
     const phases = new Float32Array(count);
     const brights = new Float32Array(count);
+    const twinkles = new Float32Array(count);
     const palette = [
-      new THREE.Color("#b9a3ff"),
-      new THREE.Color("#8fb7ff"),
-      new THREE.Color("#ffd6e7"),
-      new THREE.Color("#fff1db"),
+      new THREE.Color("#fff4dc"),
+      new THREE.Color("#ffe1c6"),
+      new THREE.Color("#ffd6ea"),
+      new THREE.Color("#e6dcff"),
     ];
     const color = new THREE.Color();
-    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 20);
-    const hit = new THREE.Vector3();
-    const ndc = new THREE.Vector2();
-    this._bokehNdc = [];
-    this.camera.updateMatrixWorld(true);
 
+    // A loose, flattened torus of fireflies around the bloom. It is parented
+    // to the flower so it follows the focus, tilt and scale.
     for (let i = 0; i < count; i += 1) {
-      const ndcX = -0.92 + rng() * 1.84;
-      const ndcY = -0.92 + rng() * 1.84;
-      this._bokehNdc.push(new THREE.Vector2(ndcX, ndcY));
-      ndc.set(ndcX, ndcY);
-      this._raycaster.setFromCamera(ndc, this.camera);
-      if (!this._raycaster.ray.intersectPlane(plane, hit)) {
-        hit.set(0, 0, -20);
-      }
-      positions[i * 3] = hit.x;
-      positions[i * 3 + 1] = hit.y;
-      positions[i * 3 + 2] = hit.z;
+      const angle = rng() * Math.PI * 2;
+      const radius = 3.15 + Math.pow(rng(), 0.9) * 1.45;
+      const vertical = rng() * 2 - 1;
+      const ringRadius = Math.sqrt(Math.max(0, 1 - vertical * vertical)) * radius;
+      positions[i * 3] = Math.cos(angle) * ringRadius + (rng() - 0.5) * 0.4;
+      positions[i * 3 + 1] = vertical * radius + 0.1;
+      positions[i * 3 + 2] = Math.sin(angle) * ringRadius + (rng() - 0.5) * 0.4;
 
-      color.copy(palette[Math.floor(rng() * palette.length)]);
+      color
+        .copy(palette[Math.floor(rng() * palette.length)])
+        .multiplyScalar(0.9 + rng() * 0.5);
       colors[i * 3] = color.r;
       colors[i * 3 + 1] = color.g;
       colors[i * 3 + 2] = color.b;
-      sizes[i] = 6 + Math.pow(rng(), 1.6) * 26;
-      brights[i] = 0.06 + rng() * 0.1;
+      sizes[i] = 1.0 + Math.pow(rng(), 1.7) * 3.6;
+      brights[i] = 0.56 + Math.pow(rng(), 1.05) * 0.44;
+      twinkles[i] = 0.2 + rng() * 0.85;
       phases[i] = rng();
     }
 
@@ -1031,14 +982,15 @@ export class BloomScene {
     geometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
     geometry.setAttribute("aPhase", new THREE.BufferAttribute(phases, 1));
     geometry.setAttribute("aBright", new THREE.BufferAttribute(brights, 1));
+    geometry.setAttribute("aTwinkle", new THREE.BufferAttribute(twinkles, 1));
 
     const material = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
         uPixelRatio: { value: 1 },
       },
-      vertexShader: BOKEH_VERTEX,
-      fragmentShader: BOKEH_FRAGMENT,
+      vertexShader: STAR_VERTEX,
+      fragmentShader: STAR_FRAGMENT,
       transparent: true,
       depthWrite: false,
       depthTest: true,
@@ -1047,24 +999,14 @@ export class BloomScene {
 
     const points = new THREE.Points(geometry, material);
     points.frustumCulled = false;
-    points.renderOrder = -4;
-    this.scene.add(points);
-    this.bokeh = points;
-  }
+    points.renderOrder = 3;
+    points.position.y = 0.55;
 
-  _repositionBokeh() {
-    if (!this.bokeh || !this._bokehNdc) return;
-    this.camera.updateMatrixWorld(true);
-    const positions = this.bokeh.geometry.attributes.position;
-    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 20);
-    const hit = new THREE.Vector3();
-    for (let i = 0; i < this._bokehNdc.length; i += 1) {
-      this._raycaster.setFromCamera(this._bokehNdc[i], this.camera);
-      if (this._raycaster.ray.intersectPlane(plane, hit)) {
-        positions.setXYZ(i, hit.x, hit.y, hit.z);
-      }
-    }
-    positions.needsUpdate = true;
+    const group = new THREE.Group();
+    group.add(points);
+    this.root.add(group);
+    this.orbitGroup = group;
+    this.orbitStars = points;
   }
 
   update(dt, input) {
@@ -1108,8 +1050,11 @@ export class BloomScene {
     if (this.skyStars) {
       this.skyStars.material.uniforms.uTime.value = this._time;
     }
-    if (this.bokeh) {
-      this.bokeh.material.uniforms.uTime.value = this._time;
+    if (this.orbitStars) {
+      this.orbitStars.material.uniforms.uTime.value = this._time;
+      this.orbitGroup.rotation.y += safeDt * 0.1;
+      this.orbitGroup.rotation.x = Math.sin(this._time * 0.09) * 0.06;
+      this.orbitGroup.rotation.z = Math.cos(this._time * 0.06) * 0.04;
     }
     this.bloomPass.strength = 0.2 + bloom * 0.06 + this.burst * 0.28;
     this.bloomPass.radius = 0.28 + bloom * 0.06;
@@ -1234,9 +1179,10 @@ export class BloomScene {
       this.skyStars.geometry.dispose();
       this.skyStars.material.dispose();
     }
-    if (this.bokeh) {
-      this.bokeh.geometry.dispose();
-      this.bokeh.material.dispose();
+    if (this.orbitStars) {
+      this.root.remove(this.orbitGroup);
+      this.orbitStars.geometry.dispose();
+      this.orbitStars.material.dispose();
     }
     this.composer.dispose();
     this.renderer.dispose();

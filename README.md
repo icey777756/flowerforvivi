@@ -1,4 +1,4 @@
-# Flowers for Vivi · Bloom at Your Fingertips
+# Flower for Vivi · Bloom at Your Fingertips
 
 一个**为手机重做**的可交互手势粒子花朵：MediaPipe Hands + Three.js + GLSL。
 

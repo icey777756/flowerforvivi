@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------ *
- * Flowers for Vivi · Bloom at Your Fingertips
+ * Flower for Vivi · Bloom at Your Fingertips
  * Editorial nocturne / warm bioluminescence — mobile-first edition
  * ------------------------------------------------------------------ */
 
@@ -418,7 +418,7 @@ body.has-camera #camera {
   font-size: clamp(2.5rem, 11vw, 3.1rem);
   font-weight: 400;
   line-height: 1.16;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.1em;
   background: linear-gradient(
     115deg,
     #fff8ff 0%,
@@ -436,8 +436,9 @@ body.has-camera #camera {
   color: transparent;
   filter:
     drop-shadow(0 3px 18px rgba(4, 2, 8, 0.72))
-    drop-shadow(0 0 34px rgba(255, 142, 172, 0.18))
-    drop-shadow(0 0 60px rgba(168, 160, 255, 0.16));
+    drop-shadow(0 0 12px rgba(255, 240, 246, 0.16))
+    drop-shadow(0 0 26px rgba(255, 178, 208, 0.3))
+    drop-shadow(0 0 62px rgba(170, 150, 255, 0.26));
   animation: dreamy-title 18s ease-in-out infinite alternate;
 }
 
@@ -459,7 +460,7 @@ body.has-camera #camera {
 }
 
 .intro__lede {
-  margin: 18px 0 40px;
+  margin: 18px 0 52px;
   font-family: var(--serif);
   font-size: 15px;
   line-height: 1.85;
@@ -1113,6 +1114,13 @@ body.is-searching .focus-hint {
 
 /* ------------------------- narrow phones (320px) ------------------------ */
 
+@media (max-width: 350px) {
+  .intro__lede {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+}
+
 @media (max-width: 360px) {
   .topbar {
     gap: 8px;
@@ -1163,7 +1171,7 @@ body.is-searching .focus-hint {
   }
 
   .intro__lede {
-    margin: 13px 0 30px;
+    margin: 13px 0 42px;
     font-size: 13.5px;
     line-height: 1.8;
   }
@@ -1206,7 +1214,7 @@ body.is-searching .focus-hint {
   }
 
   .intro__lede {
-    margin: 12px 0 24px;
+    margin: 12px 0 34px;
     font-size: 13px;
     line-height: 1.75;
   }

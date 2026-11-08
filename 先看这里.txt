@@ -1,0 +1,30 @@
+指尖生花 · 手机版
+==================
+
+这是为手机重做的可交互版本：拖动开合、轻点开合、自动呼吸，也可以开启摄像头用手势控制。
+
+macOS / Linux：
+  bash 启动.sh
+
+Windows：
+  双击「启动.cmd」
+
+然后访问：
+  http://127.0.0.1:5178/
+
+线上地址：
+  https://icey777756.github.io/fingertip-bloom/
+
+手机上体验：
+  - 竖屏打开，页面会按手机重新排版。
+  - 摄像头必须是 https:// 或 localhost，微信内置浏览器通常不允许。
+  - 首次开启手势需下载约 12 MB 手部模型，仅需一次。
+
+修改代码：
+  - 页面结构：index.html
+  - 样式：src/styles.css
+  - 花朵与着色器：src/flower.js
+  - 手势识别：src/hand-tracker.js
+  - 交互 / HUD / 摄像头流程：src/main.js
+
+详细的修改位置与示例请阅读「修改指南.md」。

@@ -1,0 +1,17 @@
+{
+  "name": "指尖生花 · Bloom at Your Fingertips",
+  "short_name": "指尖生花",
+  "description": "手机上的可交互手势粒子花朵。上下拖动开合，或开启摄像头，握拳为苞、张掌绽放。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07050c",
+  "theme_color": "#07050c",
+  "icons": [
+    { "src": "./assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0710" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#07050c" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="指尖生花 —— 手机上的可交互手势粒子花朵。上下拖动开合，或开启摄像头，握拳为苞、张掌绽放。"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="指尖生花" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./assets/icon-180.png" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2308050d'/%3E%3Cg fill='none' stroke='%23ffc7a2' stroke-width='2'%3E%3Cpath d='M32 32c-9-1-13-7-10-14 8 0 12 5 10 14Zm0 0c1-9 7-13 14-10 0 8-5 12-14 10Zm0 0c9 1 13 7 10 14-8 0-12-5-10-14Zm0 0c-1 9-7 13-14 10 0-8 5-12 14-10Z'/%3E%3Ccircle cx='32' cy='32' r='3' fill='%23ff8b9d' stroke='none'/%3E%3C/g%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./src/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/build/three.module.js",
+          "three/addons/": "./vendor/three/addons/"
+        }
+      }
+    </script>
+    <title>指尖生花 · Bloom at Your Fingertips</title>
+  </head>
+  <body>
+    <div id="app" data-mode="idle" data-gesture="idle">
+      <div class="backdrop" aria-hidden="true">
+        <video id="camera" playsinline webkit-playsinline muted autoplay></video>
+        <div class="backdrop__veil"></div>
+        <div class="backdrop__warmth"></div>
+      </div>
+
+      <canvas id="flower-canvas" aria-label="由手势与触摸控制的粒子花朵"></canvas>
+      <canvas id="hand-canvas" aria-hidden="true"></canvas>
+      <div class="vignette" aria-hidden="true"></div>
+      <div class="grain" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <div class="brand">
+          <svg class="brand__mark" viewBox="0 0 48 48" aria-hidden="true">
+            <g fill="none" stroke="currentColor" stroke-width="1.15">
+              <path d="M24 24C16.8 23.2 13.3 18.5 15.7 13c6.2.1 9.4 4 8.3 11Z" />
+              <path d="M24 24c.8-7.2 5.5-10.7 11-8.3-.1 6.2-4 9.4-11 8.3Z" />
+              <path d="M24 24c7.2.8 10.7 5.5 8.3 11-6.2-.1-9.4-4-8.3-11Z" />
+              <path d="M24 24c-.8 7.2-5.5 10.7-11 8.3.1-6.2 4-9.4 11-8.3Z" />
+              <path d="M24 24c-4.4-3.6-4.8-8.4-1.2-12.5 4.9 2.7 5.8 7.3 1.2 12.5Z" opacity=".58" />
+              <path d="M24 24c3.6-4.4 8.4-4.8 12.5-1.2-2.7 4.9-7.3 5.8-12.5 1.2Z" opacity=".58" />
+              <path d="M24 24c3.6 4.4 4.8 8.4 1.2 12.5-4.9-2.7-5.8-7.3-1.2-12.5Z" opacity=".58" />
+              <path d="M24 24c-4.4 3.6-8.4 4.8-12.5 1.2 2.7-4.9 7.3-5.8 12.5-1.2Z" opacity=".58" />
+            </g>
+            <circle cx="24" cy="24" r="2.1" fill="#ffb58d" />
+          </svg>
+          <div class="brand__type">
+            <span class="brand__name">指尖生花</span>
+            <span class="brand__sub">BLOOM AT YOUR FINGERTIPS</span>
+          </div>
+        </div>
+
+        <div class="status" id="status" role="status" aria-live="polite">
+          <span class="status__dot" id="statusDot"></span>
+          <span class="status__text" id="statusText">STANDBY</span>
+          <span class="status__rule"></span>
+          <span class="status__num">NO. 01</span>
+        </div>
+      </header>
+
+      <p class="side-note" aria-hidden="true">将手掌交给光 · LET THE LIGHT BLOOM</p>
+
+      <main class="intro" id="intro">
+        <p class="intro__eyebrow"><span></span>A HAND-TRACKED FLORA</p>
+        <h1 class="intro__title" id="introTitle">
+          让花，<br />
+          <em>在指尖醒来。</em>
+        </h1>
+        <p class="intro__lede">
+          握拳，收拢成一颗花苞；<br />
+          张掌，让三千粒光一起舒展。
+        </p>
+
+        <ul class="intro__steps" aria-label="体验方式">
+          <li><b>01</b> 握拳 · 闭合</li>
+          <li><b>02</b> 张掌 · 绽放</li>
+          <li><b>03</b> 指尖 · 牵引</li>
+        </ul>
+
+        <div class="intro__actions">
+          <button class="action action--solid" id="startCamera" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 7.8h3.1l1.5-2.3h5.8l1.5 2.3h3.1v10.2h-15Z" />
+              <circle cx="12" cy="12.6" r="3.15" />
+            </svg>
+            <span class="action__label">开启手势</span>
+            <i class="action__arrow" aria-hidden="true">↗</i>
+          </button>
+          <button class="action action--ghost" id="startDemo" type="button">
+            无摄像头体验
+          </button>
+        </div>
+
+        <p class="intro__privacy">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4.2 7V5.2a3.8 3.8 0 0 1 7.6 0V7M3 7h10v6.4H3Z" />
+          </svg>
+          画面仅在本地浏览器运算，不会上传
+        </p>
+
+        <div class="inapp-note" id="inappNote" hidden>
+          当前为应用内浏览器，摄像头可能被限制 · 可先用触摸体验
+        </div>
+      </main>
+
+      <section class="dock" id="dock" aria-label="花朵控制">
+        <div class="dock__top">
+          <span class="dock__kicker">GESTURE / 手势</span>
+          <span class="dock__pct"><b id="openPct">00</b><i>%</i></span>
+        </div>
+        <div class="dock__state">
+          <span id="gestureLabel">等待手掌</span>
+          <span class="dock__hint" id="hudHint">上下拖动画面 · 开合花朵</span>
+        </div>
+
+        <div
+          class="meter"
+          id="bloomMeter"
+          role="slider"
+          tabindex="0"
+          aria-label="花朵开合度"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <span class="meter__track"></span>
+          <span class="meter__fill" id="meterFill"></span>
+          <span class="meter__knob" id="meterKnob"></span>
+        </div>
+
+        <div class="dock__buttons">
+          <button class="dock__btn" id="cameraButton" type="button" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4.5 7.8h3.1l1.5-2.3h5.8l1.5 2.3h3.1v10.2h-15Z" />
+              <circle cx="12" cy="12.6" r="3.15" />
+            </svg>
+            <span>手势</span>
+          </button>
+          <button class="dock__btn" id="toggleButton" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21c-4.2-2.7-6.6-6-6.6-9.4A4.5 4.5 0 0 1 12 8.2a4.5 4.5 0 0 1 6.6 3.4C18.6 15 16.2 18.3 12 21Z" />
+              <path d="M12 8.2V3.4M9.4 4.6 12 2l2.6 2.6" />
+            </svg>
+            <span>开合</span>
+          </button>
+          <button class="dock__btn" id="autoButton" type="button" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7" />
+              <circle cx="12" cy="12" r="3.4" />
+            </svg>
+            <span>自动</span>
+          </button>
+        </div>
+      </section>
+
+      <div class="coach" id="coach" aria-hidden="true">
+        <span class="coach__arrows">↑ ↓</span>
+        拖动画面 · 让花呼吸
+      </div>
+
+      <div class="focus-hint" id="focusHint" aria-hidden="true">
+        <span class="focus-hint__line"></span>
+        将手掌放入画面
+        <span class="focus-hint__line"></span>
+      </div>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+      <div class="boot" id="boot" hidden>
+        <div class="boot__flower"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <p id="bootText">正在唤醒摄像头</p>
+        <small class="boot__note" id="bootNote" hidden>首次使用需下载手部模型（约 12 MB），仅需一次</small>
+      </div>
+
+      <div class="fallback" id="fallback" hidden>
+        <div class="fallback__card">
+          <p class="fallback__eyebrow">WEBGL UNAVAILABLE</p>
+          <h2>这朵花暂时无法显形</h2>
+          <p>请开启浏览器硬件加速，或使用最新版本的 Chrome / Safari / Edge 访问。</p>
+          <button class="action action--ghost" id="fallbackDemo" type="button">重新加载页面</button>
+        </div>
+      </div>
+    </div>
+
+    <noscript>
+      <div class="noscript">请启用 JavaScript 以体验「指尖生花」。</div>
+    </noscript>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

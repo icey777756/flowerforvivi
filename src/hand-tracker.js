@@ -237,7 +237,7 @@ export class HandTracker {
   async _ensureHands() {
     if (this.hands) return;
     if (!window.Hands) {
-      this.onStatus({ type: "loading-model", message: "正在下载手部模型" });
+      this.onStatus({ type: "loading-model", message: "正在下載手部模型" });
       await loadScript(resolveAsset("hands.js"));
     }
     if (typeof window.Hands !== "function") {
@@ -260,7 +260,7 @@ export class HandTracker {
     });
     this.hands.onResults((results) => this._handleResults(results));
 
-    this.onStatus({ type: "loading-model", message: "正在唤醒手部模型" });
+    this.onStatus({ type: "loading-model", message: "正在喚醒手部模型" });
     await this.hands.initialize();
   }
 
@@ -274,7 +274,7 @@ export class HandTracker {
         throw new Error("MEDIA_UNSUPPORTED");
       }
 
-      this.onStatus({ type: "requesting", message: "正在请求摄像头" });
+      this.onStatus({ type: "requesting", message: "正在請求鏡頭" });
 
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
@@ -316,7 +316,7 @@ export class HandTracker {
       this._lastFrameAt = performance.now();
       this.onStatus({
         type: "running",
-        message: "手势已就绪",
+        message: "手勢已就緒",
         videoSize: {
           width: video.videoWidth || 1280,
           height: video.videoHeight || 720,
@@ -357,7 +357,7 @@ export class HandTracker {
           if (this._consecutiveErrors === 8) {
             this.onStatus({
               type: "warning",
-              message: "手部追踪出现波动，正在尝试恢复",
+              message: "手部追蹤出現波動，正在嘗試恢復",
             });
           }
         } finally {
@@ -507,7 +507,7 @@ export class HandTracker {
     this._state = null;
     this.stopStream();
     if (this.hands) this.hands.reset();
-    this.onStatus({ type: "stopped", message: "摄像头已关闭" });
+    this.onStatus({ type: "stopped", message: "鏡頭已關閉" });
   }
 
   async dispose() {

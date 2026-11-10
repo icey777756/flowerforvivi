@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-Hant-TW">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -11,7 +11,7 @@
     <meta name="color-scheme" content="dark" />
     <meta
       name="description"
-      content="Flower for Vivi —— 一束会开合的光。拖动开合，或开启摄像头，握拳为苞、张掌绽放。"
+      content="Flower for Vivi —— 一束會開合的光。拖動開合，或開啟鏡頭，握拳為苞、張掌綻放。"
     />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -22,7 +22,7 @@
     <link rel="apple-touch-icon" href="./assets/icon-180.png" />
     <link
       rel="preload"
-      href="./assets/fonts/vivi-serif.woff2?v=4"
+      href="./assets/fonts/vivi-serif.woff2?v=5"
       as="font"
       type="font/woff2"
       crossorigin
@@ -31,7 +31,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2308050d'/%3E%3Cg fill='none' stroke='%23ffc7a2' stroke-width='2'%3E%3Cpath d='M32 32c-9-1-13-7-10-14 8 0 12 5 10 14Zm0 0c1-9 7-13 14-10 0 8-5 12-14 10Zm0 0c9 1 13 7 10 14-8 0-12-5-10-14Zm0 0c-1 9-7 13-14 10 0-8 5-12 14-10Z'/%3E%3Ccircle cx='32' cy='32' r='3' fill='%23ff8b9d' stroke='none'/%3E%3C/g%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./src/styles.css?v=17" />
+    <link rel="stylesheet" href="./src/styles.css?v=18" />
     <script type="importmap">
       {
         "imports": {
@@ -50,7 +50,7 @@
         <div class="backdrop__warmth"></div>
       </div>
 
-      <canvas id="flower-canvas" aria-label="由手势与触摸控制的粒子花朵"></canvas>
+      <canvas id="flower-canvas" aria-label="由手勢與觸控控制的粒子花朵"></canvas>
       <canvas id="hand-canvas" aria-hidden="true"></canvas>
       <div class="vignette" aria-hidden="true"></div>
       <div class="grain" aria-hidden="true"></div>
@@ -84,15 +84,15 @@
         </div>
       </header>
 
-      <p class="side-note" aria-hidden="true">将手掌交给光 · LET THE LIGHT BLOOM</p>
+      <p class="side-note" aria-hidden="true">將手掌交給光 · LET THE LIGHT BLOOM</p>
 
       <main class="intro" id="intro">
         <h1 class="intro__title" id="introTitle">
           很久是多久，<br />
-          <em>永远是多远？</em>
+          <em>永遠是多遠？</em>
         </h1>
         <p class="intro__lede">
-          何玉有的花，凤梨也有，陈昕葳会一直有。
+          何玉有的花，鳳梨也有，陳昕葳會一直有。
         </p>
 
         <button
@@ -110,14 +110,14 @@
               <path d="M32 29c-1.8 0-3.1 1.4-3.1 3.1s1.3 3.1 3.1 3.1 3.1-1.4 3.1-3.1S33.8 29 32 29Z" />
             </svg>
           </span>
-          <span class="secret-link__text">永远的秘诀是…</span>
+          <span class="secret-link__text">永遠的秘訣是…</span>
           <span class="secret-link__spark" aria-hidden="true">✦</span>
         </button>
 
-        <ul class="intro__steps" aria-label="体验方式">
-          <li><b>01</b> 握拳 · 闭合</li>
-          <li><b>02</b> 张掌 · 绽放</li>
-          <li><b>03</b> 指尖 · 牵引</li>
+        <ul class="intro__steps" aria-label="體驗方式">
+          <li><b>01</b> 握拳 · 閉合</li>
+          <li><b>02</b> 張掌 · 綻放</li>
+          <li><b>03</b> 指尖 · 牽引</li>
         </ul>
 
         <div class="intro__actions">
@@ -126,10 +126,10 @@
               <path d="M4.5 7.8h3.1l1.5-2.3h5.8l1.5 2.3h3.1v10.2h-15Z" />
               <circle cx="12" cy="12.6" r="3.15" />
             </svg>
-            <span class="action__label">开启手势</span>
+            <span class="action__label">開啟手勢</span>
           </button>
           <button class="action action--ghost" id="startDemo" type="button">
-            无摄像头体验
+            無鏡頭體驗
           </button>
         </div>
 
@@ -137,17 +137,17 @@
           <svg viewBox="0 0 16 16" aria-hidden="true">
             <path d="M4.2 7V5.2a3.8 3.8 0 0 1 7.6 0V7M3 7h10v6.4H3Z" />
           </svg>
-          画面仅在本地浏览器运算，不会上传
+          畫面僅在本機瀏覽器運算，不會上傳
         </p>
 
         <div class="inapp-note" id="inappNote" hidden>
-          当前为应用内浏览器，摄像头可能被限制 · 可先用触摸体验
+          當前為應用程式內建瀏覽器，鏡頭可能被限制 · 可先用觸控體驗
         </div>
       </main>
 
       <section class="dock" id="dock" aria-label="花朵控制">
         <div class="dock__top">
-          <span class="dock__kicker">GESTURE / 手势</span>
+          <span class="dock__kicker">GESTURE / 手勢</span>
           <button
             class="dock__secret"
             type="button"
@@ -155,8 +155,8 @@
             aria-haspopup="dialog"
             aria-controls="secretLetter"
             aria-expanded="false"
-            aria-label="永远的秘诀是…"
-          >秘诀</button>
+            aria-label="永遠的秘訣是…"
+          >秘訣</button>
           <span class="dock__pct"><b id="openPct">00</b><i>%</i></span>
         </div>
         <div class="dock__state">
@@ -169,7 +169,7 @@
           id="bloomMeter"
           role="slider"
           tabindex="0"
-          aria-label="花朵开合度"
+          aria-label="花朵開合度"
           aria-valuemin="0"
           aria-valuemax="100"
           aria-valuenow="0"
@@ -185,28 +185,28 @@
               <path d="M4.5 7.8h3.1l1.5-2.3h5.8l1.5 2.3h3.1v10.2h-15Z" />
               <circle cx="12" cy="12.6" r="3.15" />
             </svg>
-            <span>手势</span>
+            <span>手勢</span>
           </button>
           <button class="dock__btn" id="toggleButton" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 21c-4.2-2.7-6.6-6-6.6-9.4A4.5 4.5 0 0 1 12 8.2a4.5 4.5 0 0 1 6.6 3.4C18.6 15 16.2 18.3 12 21Z" />
               <path d="M12 8.2V3.4M9.4 4.6 12 2l2.6 2.6" />
             </svg>
-            <span>开合</span>
+            <span>開合</span>
           </button>
           <button class="dock__btn" id="autoButton" type="button" aria-pressed="false">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7" />
               <circle cx="12" cy="12" r="3.4" />
             </svg>
-            <span>自动</span>
+            <span>自動</span>
           </button>
         </div>
       </section>
 
       <div class="focus-hint" id="focusHint" aria-hidden="true">
         <span class="focus-hint__line"></span>
-        将手掌放入画面
+        將手掌放入畫面
         <span class="focus-hint__line"></span>
       </div>
 
@@ -214,23 +214,23 @@
 
       <div class="boot" id="boot" hidden>
         <div class="boot__flower"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <p id="bootText">正在唤醒摄像头</p>
-        <small class="boot__note" id="bootNote" hidden>首次使用需下载手部模型（约 12 MB），仅需一次</small>
+        <p id="bootText">正在喚醒鏡頭</p>
+        <small class="boot__note" id="bootNote" hidden>首次使用需下載手部模型（約 12 MB），僅需一次</small>
       </div>
 
       <div class="fallback" id="fallback" hidden>
         <div class="fallback__card">
           <p class="fallback__eyebrow">WEBGL UNAVAILABLE</p>
-          <h2>这朵花暂时无法显形</h2>
-          <p>请开启浏览器硬件加速，或使用最新版本的 Chrome / Safari / Edge 访问。</p>
-          <button class="action action--ghost" id="fallbackDemo" type="button">重新加载页面</button>
+          <h2>這朵花暫時無法顯形</h2>
+          <p>請開啟瀏覽器硬體加速，或使用最新版本的 Chrome / Safari / Edge 瀏覽。</p>
+          <button class="action action--ghost" id="fallbackDemo" type="button">重新載入頁面</button>
         </div>
       </div>
     </div>
 
     <div class="secret" id="secretLetter" hidden>
       <div class="secret__backdrop" data-secret-close></div>
-      <button class="secret__close" type="button" data-secret-close aria-label="关闭">
+      <button class="secret__close" type="button" data-secret-close aria-label="關閉">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M6 6l12 12M18 6 6 18" />
         </svg>
@@ -248,15 +248,15 @@
         <article class="secret__card" id="secretCard" role="dialog" aria-modal="true" aria-labelledby="secretTitle" tabindex="-1">
           <header class="secret__header">
             <p class="secret__eyebrow">A LETTER FOR VIVI</p>
-            <h2 class="secret__title" id="secretTitle">永远的秘诀<span>是…</span></h2>
+            <h2 class="secret__title" id="secretTitle">永遠的秘訣<span>是…</span></h2>
             <span class="secret__rule" aria-hidden="true"><i></i>✦<i></i></span>
           </header>
           <div class="secret__body">
-            <p>那天和你说花不新鲜了就给你买新的没有别的意思。</p>
-            <p>你之前在综艺里说女孩子都喜欢收到花，所以我想你应该也喜欢吧。你给别人送花，我给你送。</p>
-            <p>花会枯，人会散，以后只要我在，你的花瓶里永远会有花。不见面的日子里，就让这朵花陪你吧。</p>
-            <p>那天你问我这是不是玫瑰我还没反应过来，了解之后才知道原来四张给何玉种了玫瑰。所以这次送你玫瑰。</p>
-            <p>何玉有的花，我们凤梨也有呀，陈昕葳会一直有。葳葳，你永远是我心里<span class="secret__mark">最漂亮最独一无二的那朵玫瑰</span>。</p>
+            <p>那天和你說花不新鮮了就給你買新的沒有別的意思。</p>
+            <p>你之前在綜藝裡說女孩子都喜歡收到花，所以我想你應該也喜歡吧。你給別人送花，我給你送。</p>
+            <p>花會枯，人會散，以後只要我在，你的花瓶裡永遠會有花。不見面的日子裡，就讓這朵花陪你吧。</p>
+            <p>那天你問我這是不是玫瑰我還沒反應過來，瞭解之後才知道原來四張給何玉種了玫瑰。所以這次送你玫瑰。</p>
+            <p>何玉有的花，鳳梨也有，陳昕葳會一直有。葳葳，你永遠是我心裡<span class="secret__mark">最漂亮最獨一無二的那朵玫瑰</span>。</p>
           </div>
           <footer class="secret__footer">
             <button class="secret__done" type="button" data-secret-close>okok</button>
@@ -266,10 +266,10 @@
     </div>
 
     <noscript>
-      <div class="noscript">请启用 JavaScript 以体验「Flower for Vivi」。</div>
+      <div class="noscript">請啟用 JavaScript 以體驗「Flower for Vivi」。</div>
     </noscript>
 
     <script src="./src/visit-ping.js?v=5" defer></script>
-    <script type="module" src="./src/main.js?v=13"></script>
+    <script type="module" src="./src/main.js?v=14"></script>
   </body>
 </html>

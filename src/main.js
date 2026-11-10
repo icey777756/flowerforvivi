@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { BloomScene } from "./flower.js?v=11";
-import { HandTracker } from "./hand-tracker.js?v=11";
-import { HandOverlay } from "./hand-overlay.js?v=11";
+import { HandTracker } from "./hand-tracker.js?v=12";
+import { HandOverlay } from "./hand-overlay.js?v=12";
 
 /* ------------------------------------------------------------------ *
  * DOM
@@ -166,8 +166,8 @@ function updateModeChrome() {
   setPressed(cameraButton, cameraOn);
   setPressed(autoButton, state.mode === "auto");
   cameraButton.disabled = state.cameraStarting;
-  cameraButton.title = cameraOn ? "关闭摄像头，改用触摸" : "开启摄像头手势";
-  autoButton.title = state.mode === "auto" ? "停止自动呼吸" : "自动呼吸";
+  cameraButton.title = cameraOn ? "關閉鏡頭，改用觸控" : "開啟鏡頭手勢";
+  autoButton.title = state.mode === "auto" ? "停止自動呼吸" : "自動呼吸";
 }
 
 async function requestWakeLock() {
@@ -233,29 +233,29 @@ function getVideoViewportPoint(point) {
 
 function describeCameraError(error) {
   if (!window.isSecureContext) {
-    return "摄像头需要 HTTPS 页面。请通过 https:// 或 localhost 打开后重试。";
+    return "鏡頭需要 HTTPS 頁面。請透過 https:// 或 localhost 開啟後重試。";
   }
   if (IS_IN_APP) {
-    return "当前是应用内浏览器，摄像头被限制。请点右上角「···」选择在系统浏览器打开。";
+    return "當前是應用程式內建瀏覽器，鏡頭被限制。請點右上角「···」選擇在系統瀏覽器開啟。";
   }
-  if (!error) return "摄像头暂时无法启动，已切换到触摸模式。";
+  if (!error) return "鏡頭暫時無法啟動，已切換到觸控模式。";
   if (error.message === "MEDIA_UNSUPPORTED") {
-    return "当前浏览器不支持摄像头访问，已切换到触摸模式。";
+    return "當前瀏覽器不支援鏡頭存取，已切換到觸控模式。";
   }
   if (error.name === "NotAllowedError" || error.name === "SecurityError") {
-    return "摄像头权限未开启。你仍可拖动画面体验花朵。";
+    return "鏡頭權限未開啟。你仍可拖動畫面體驗花朵。";
   }
   if (error.name === "NotFoundError" || error.name === "OverconstrainedError") {
-    return "没有找到可用的摄像头，已切换到触摸模式。";
+    return "沒有找到可用的鏡頭，已切換到觸控模式。";
   }
   if (error.name === "NotReadableError") {
-    return "摄像头正被其他程序占用，已切换到触摸模式。";
+    return "鏡頭正被其他程式佔用，已切換到觸控模式。";
   }
   if (/wasm|model|script|Hands|fetch|network/i.test(error.message || "")) {
-    return "手部模型加载失败，已切换到触摸模式。请刷新页面后重试。";
+    return "手部模型載入失敗，已切換到觸控模式。請重新整理頁面後重試。";
   }
   console.error("[BLOOM] camera error", error);
-  return "摄像头暂时无法启动，已切换到触摸模式。";
+  return "鏡頭暫時無法啟動，已切換到觸控模式。";
 }
 
 /* ------------------------------------------------------------------ *
@@ -287,7 +287,7 @@ function takeOverBloom() {
 function toggleBloom() {
   if (!state.experience) return;
   if (state.mode === "camera") {
-    showToast("手势模式中 · 直接用握拳 / 张掌控制花朵", "", 2600);
+    showToast("手勢模式中 · 直接用握拳 / 張掌控制花朵", "", 2600);
     haptic(4);
     return;
   }
@@ -326,7 +326,7 @@ function resetCameraState() {
 
 function enterTouch({ message = "", quiet = false, keepBloom = false } = {}) {
   if (state.cameraStarting) {
-    showToast("摄像头正在启动，请稍候…", "", 2200);
+    showToast("鏡頭正在啟動，請稍候…", "", 2200);
     return;
   }
 
@@ -381,7 +381,7 @@ function enterAuto({ quiet = false } = {}) {
   state.pointer.active = false;
   updateHud(true);
 
-  if (!quiet) showToast("自动呼吸中 · 点「开合」随时接管", "", 4200);
+  if (!quiet) showToast("自動呼吸中 · 點「開合」隨時接管", "", 4200);
 }
 
 async function startCameraFlow() {
@@ -396,7 +396,7 @@ async function startCameraFlow() {
   updateModeChrome();
   markLive("camera");
   setStatusLabel("CONNECTING");
-  showBoot("正在请求摄像头", false);
+  showBoot("正在請求鏡頭", false);
   setSearching(false);
   hideToast();
 
@@ -420,7 +420,7 @@ async function startCameraFlow() {
     setStatusLabel("CAMERA LIVE");
     setSearching(true);
     updateHud(true);
-    showToast("手势已就绪 · 将手掌放入画面，握拳或张开", "ready", 4200);
+    showToast("手勢已就緒 · 將手掌放入畫面，握拳或張開", "ready", 4200);
   } catch (error) {
     state.cameraStarting = false;
     state.cameraReady = false;
@@ -434,7 +434,7 @@ async function startCameraFlow() {
   }
 }
 
-function stopCameraAndDemo(message = "摄像头已关闭 · 改用触摸开合") {
+function stopCameraAndDemo(message = "鏡頭已關閉 · 改用觸控開合") {
   enterTouch({ message, quiet: true, keepBloom: true });
 }
 
@@ -518,7 +518,7 @@ function meterValueFromX(clientX) {
 function onMeterPointerDown(event) {
   if (!state.experience) return;
   if (state.mode === "camera") {
-    showToast("手势模式中 · 直接用握拳 / 张掌控制花朵", "", 2400);
+    showToast("手勢模式中 · 直接用握拳 / 張掌控制花朵", "", 2400);
     return;
   }
   takeOverBloom();
@@ -670,11 +670,11 @@ function onTrackerStatus(status) {
   if (!status) return;
 
   if (status.type === "requesting") {
-    if (!boot.hidden) showBoot("正在请求摄像头", false);
+    if (!boot.hidden) showBoot("正在請求鏡頭", false);
   } else if (status.type === "loading-model") {
-    if (!boot.hidden) showBoot(status.message || "正在唤醒手部模型", true);
+    if (!boot.hidden) showBoot(status.message || "正在喚醒手部模型", true);
   } else if (status.type === "warning") {
-    showToast(status.message || "手部追踪出现波动", "", 2600);
+    showToast(status.message || "手部追蹤出現波動", "", 2600);
   } else if (status.type === "stopped") {
     hideBoot();
     setSearching(false);
@@ -714,7 +714,7 @@ function updateHud(force = false) {
 
   if (!state.experience) {
     key = "idle";
-    hint = "等待你唤醒";
+    hint = "等待你喚醒";
   } else if (state.mode === "touch") {
     key =
       state.bloom > 0.62
@@ -725,12 +725,12 @@ function updateHud(force = false) {
     hint = "";
   } else if (state.mode === "auto") {
     key = "auto";
-    hint = "自动呼吸中 · 点「开合」接管";
+    hint = "自動呼吸中 · 點「開合」接管";
   } else if (state.mode === "camera" && state.hasHand && state.gesture) {
     key = state.gesture.state;
-    if (key === "half") hint = "缓缓张开手掌";
+    if (key === "half") hint = "緩緩張開手掌";
   } else if (state.mode === "camera") {
-    hint = "将手掌放入画面";
+    hint = "將手掌放入畫面";
   }
 
   const copy = HUD_COPY[key] || HUD_COPY.waiting;
@@ -910,7 +910,7 @@ function wireEvents() {
   autoButton.addEventListener("click", () => {
     if (state.mode === "auto") {
       enterTouch({ quiet: true, keepBloom: true });
-      showToast("已接管 · 用「开合」继续调整", "", 2400);
+      showToast("已接管 · 用「開合」繼續調整", "", 2400);
       return;
     }
     enterAuto();

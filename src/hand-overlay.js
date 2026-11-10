@@ -1,4 +1,4 @@
-import { HAND_CONNECTIONS } from "./hand-tracker.js?v=11";
+import { HAND_CONNECTIONS } from "./hand-tracker.js?v=12";
 
 const TIPS = new Set([4, 8, 12, 16, 20]);
 const TIP_NAMES = [4, 8, 12, 16, 20];

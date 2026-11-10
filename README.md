@@ -26,7 +26,7 @@
 | 点 **「开合」** | 同上，单手也能按到 |
 | 点 **「自动」** | 让花自己缓慢呼吸，点「开合」随时接管 |
 | 点 **「手势」** 并允许摄像头 | 握拳收拢，张掌绽放，指尖牵引 |
-| 点首屏的 **「永远的秘诀是…」** | 打开一封写在信纸上的长信 |
+| 点首屏的 **「永遠的秘訣是…」** | 打开一封写在信纸上的长信 |
 | 桌面：`Space` / `C` / `A` / `D` | 开合 / 摄像头 / 自动 / 触摸模式 |
 
 摄像头不可用、被拒绝或被占用时，会**自动回落到触摸模式**，不会卡在加载页；应用内浏览器（微信、QQ 等）会提前给出提示。
@@ -35,7 +35,7 @@
 
 ## 藏在花里的信
 
-首屏副文案下面是一枚火漆按钮「永远的秘诀是…」。点开后是一封写在奶油色信纸上的长信：纸纹、烫金内框、火漆封印与邮票式收口，手机全屏阅读，桌面居中展开，逐段浮现。
+首屏副文案下面是一枚火漆按钮「永遠的秘訣是…」。点开后是一封写在奶油色信纸上的长信：纸纹、烫金内框、火漆封印与邮票式收口，手机全屏阅读，桌面居中展开，逐段浮现。
 
 <p align="center">
   <img src="docs/preview-secret.jpg" width="40%" alt="写给你的信" />
@@ -55,6 +55,7 @@
 - **原生手感**：移除点击高亮、抑制长按选中与下拉刷新、`touch-action` 区分拖动区与滚动手势、横屏不做字体膨胀。
 - **常亮与省电**：进入体验后请求 Wake Lock，页面切后台自动释放并暂停渲染。
 - **可安装**：manifest + 192/512/maskable 图标，可「添加到主屏幕」全屏打开。
+- **台湾繁体**：全站文案转为台湾繁体，字型改用自托管的思源宋体（Noto Serif TC）子集，iOS/Android 一致。
 
 ---
 
@@ -208,7 +209,7 @@ MediaPipe Hands 返回每只手 21 个归一化关键点，`analyzeHand()` 会�
 
 - [Three.js](https://threejs.org/) r186.1 — MIT
 - [MediaPipe Hands](https://developers.google.com/mediapipe/solutions/vision/hand_landmarker) 0.4.1675469240 — Apache License 2.0
-- [Noto Serif SC](https://github.com/notofonts/noto-cjk)（自托管子集，约 50 KB）— SIL Open Font License 1.1
+- [Noto Serif TC](https://github.com/notofonts/noto-cjk)（自托管子集，约 53 KB）— SIL Open Font License 1.1
 
 详细许可文本见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) 与 [`licenses/`](licenses/)。
 

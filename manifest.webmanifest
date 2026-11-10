@@ -1,8 +1,8 @@
 {
   "name": "Flower for Vivi · Bloom at Your Fingertips",
   "short_name": "Flower for Vivi",
-  "description": "Flower for Vivi —— 一束会开合的光。拖动开合，或开启摄像头，握拳为苞、张掌绽放。",
-  "lang": "zh-CN",
+  "description": "Flower for Vivi —— 一束會開合的光。拖動開合，或開啟鏡頭，握拳為苞、張掌綻放。",
+  "lang": "zh-Hant-TW",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

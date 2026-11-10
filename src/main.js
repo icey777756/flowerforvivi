@@ -1013,3 +1013,110 @@ function init() {
 }
 
 init();
+
+/* ----------------------------- secret letter ---------------------------- */
+
+(() => {
+  const overlay = document.getElementById("secretLetter");
+  if (!overlay) return;
+
+  const card = document.getElementById("secretCard");
+  const closeButton = overlay.querySelector(".secret__close");
+  const triggers = Array.from(document.querySelectorAll("[data-secret-open]"));
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  let isOpen = false;
+  let lastFocus = null;
+  let hideTimer = 0;
+
+  function visibleTrigger() {
+    return triggers.find((trigger) => trigger.offsetParent !== null) || triggers[0];
+  }
+
+  function openSecret() {
+    if (isOpen) return;
+    isOpen = true;
+    lastFocus = document.activeElement;
+    window.clearTimeout(hideTimer);
+
+    overlay.hidden = false;
+    if (card) card.scrollTop = 0;
+    document.documentElement.classList.add("secret-open");
+    triggers.forEach((trigger) => trigger.setAttribute("aria-expanded", "true"));
+
+    // Force the hidden -> visible style to resolve before adding the class,
+    // so the paper unfolds immediately even on a busy WebGL frame.
+    void overlay.offsetWidth;
+    overlay.classList.add("is-open");
+    if (closeButton) closeButton.focus({ preventScroll: true });
+  }
+
+  function closeSecret() {
+    if (!isOpen) return;
+    isOpen = false;
+    overlay.classList.remove("is-open");
+    document.documentElement.classList.remove("secret-open");
+    triggers.forEach((trigger) => trigger.setAttribute("aria-expanded", "false"));
+
+    const target =
+      lastFocus && document.contains(lastFocus) && lastFocus.offsetParent !== null
+        ? lastFocus
+        : visibleTrigger();
+
+    window.clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(
+      () => {
+        overlay.hidden = true;
+        if (target) target.focus({ preventScroll: true });
+      },
+      reduceMotion ? 0 : 380,
+    );
+  }
+
+  triggers.forEach((trigger) => {
+    trigger.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openSecret();
+    });
+  });
+
+  overlay.addEventListener("click", (event) => {
+    if (event.target.closest("[data-secret-close]")) closeSecret();
+  });
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (!isOpen) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeSecret();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const focusables = Array.from(
+        overlay.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => element.offsetParent !== null);
+      if (!focusables.length) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    },
+    true,
+  );
+})();

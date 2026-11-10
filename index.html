@@ -22,7 +22,7 @@
     <link rel="apple-touch-icon" href="./assets/icon-180.png" />
     <link
       rel="preload"
-      href="./assets/fonts/vivi-serif.woff2?v=2"
+      href="./assets/fonts/vivi-serif.woff2?v=4"
       as="font"
       type="font/woff2"
       crossorigin
@@ -31,7 +31,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2308050d'/%3E%3Cg fill='none' stroke='%23ffc7a2' stroke-width='2'%3E%3Cpath d='M32 32c-9-1-13-7-10-14 8 0 12 5 10 14Zm0 0c1-9 7-13 14-10 0 8-5 12-14 10Zm0 0c9 1 13 7 10 14-8 0-12-5-10-14Zm0 0c-1 9-7 13-14 10 0-8 5-12 14-10Z'/%3E%3Ccircle cx='32' cy='32' r='3' fill='%23ff8b9d' stroke='none'/%3E%3C/g%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="./src/styles.css?v=13" />
+    <link rel="stylesheet" href="./src/styles.css?v=17" />
     <script type="importmap">
       {
         "imports": {
@@ -95,6 +95,25 @@
           何玉有的花，凤梨也有，陈昕葳会一直有。
         </p>
 
+        <button
+          class="secret-link"
+          type="button"
+          data-secret-open
+          aria-haspopup="dialog"
+          aria-controls="secretLetter"
+          aria-expanded="false"
+        >
+          <span class="secret-link__seal" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <path d="M32 13.5c-8.7 0-15.2 6.6-15.2 15.2 0 9.6 7.4 16.8 15.2 16.8s15.2-7.2 15.2-16.8c0-8.6-6.5-15.2-15.2-15.2Z" />
+              <path d="M32 21.5c-4.6 0-8.1 3.6-8.1 8.1 0 4.9 3.8 8.3 8.1 8.3s8.1-3.4 8.1-8.3c0-4.5-3.5-8.1-8.1-8.1Z" />
+              <path d="M32 29c-1.8 0-3.1 1.4-3.1 3.1s1.3 3.1 3.1 3.1 3.1-1.4 3.1-3.1S33.8 29 32 29Z" />
+            </svg>
+          </span>
+          <span class="secret-link__text">永远的秘诀是…</span>
+          <span class="secret-link__spark" aria-hidden="true">✦</span>
+        </button>
+
         <ul class="intro__steps" aria-label="体验方式">
           <li><b>01</b> 握拳 · 闭合</li>
           <li><b>02</b> 张掌 · 绽放</li>
@@ -129,6 +148,15 @@
       <section class="dock" id="dock" aria-label="花朵控制">
         <div class="dock__top">
           <span class="dock__kicker">GESTURE / 手势</span>
+          <button
+            class="dock__secret"
+            type="button"
+            data-secret-open
+            aria-haspopup="dialog"
+            aria-controls="secretLetter"
+            aria-expanded="false"
+            aria-label="永远的秘诀是…"
+          >秘诀</button>
           <span class="dock__pct"><b id="openPct">00</b><i>%</i></span>
         </div>
         <div class="dock__state">
@@ -200,11 +228,48 @@
       </div>
     </div>
 
+    <div class="secret" id="secretLetter" hidden>
+      <div class="secret__backdrop" data-secret-close></div>
+      <button class="secret__close" type="button" data-secret-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18" />
+        </svg>
+      </button>
+      <div class="secret__frame">
+        <span class="secret__backing" aria-hidden="true"></span>
+        <span class="secret__seal" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M32 14c-8 0-14 6-14 14 0 9 6.5 15.5 14 15.5S46 37 46 28c0-8-6-14-14-14Z" />
+            <path d="M32 21.5c-4.8 0-8.5 3.8-8.5 8.5 0 5 3.7 8.7 8.5 8.7s8.5-3.7 8.5-8.7c0-4.7-3.7-8.5-8.5-8.5Z" />
+            <path d="M32 28c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4Z" />
+            <path d="M18 42c3.5 3.5 8.3 5.5 14 5.5s10.5-2 14-5.5" opacity=".6" />
+          </svg>
+        </span>
+        <article class="secret__card" id="secretCard" role="dialog" aria-modal="true" aria-labelledby="secretTitle" tabindex="-1">
+          <header class="secret__header">
+            <p class="secret__eyebrow">A LETTER FOR VIVI</p>
+            <h2 class="secret__title" id="secretTitle">永远的秘诀<span>是…</span></h2>
+            <span class="secret__rule" aria-hidden="true"><i></i>✦<i></i></span>
+          </header>
+          <div class="secret__body">
+            <p>那天和你说花不新鲜了就给你买新的没有别的意思。</p>
+            <p>你之前在综艺里说女孩子都喜欢收到花，所以我想你应该也喜欢吧。你给别人送花，我给你送。</p>
+            <p>花会枯，人会散，以后只要我在，你的花瓶里永远会有花。不见面的日子里，就让这朵花陪你吧。</p>
+            <p>那天你问我这是不是玫瑰我还没反应过来，了解之后才知道原来四张给何玉种了玫瑰。所以这次送你玫瑰。</p>
+            <p>何玉有的花，我们凤梨也有呀，陈昕葳会一直有。葳葳，你永远是我心里<span class="secret__mark">最漂亮最独一无二的那朵玫瑰</span>。</p>
+          </div>
+          <footer class="secret__footer">
+            <button class="secret__done" type="button" data-secret-close>okok</button>
+          </footer>
+        </article>
+      </div>
+    </div>
+
     <noscript>
       <div class="noscript">请启用 JavaScript 以体验「Flower for Vivi」。</div>
     </noscript>
 
     <script src="./src/visit-ping.js?v=5" defer></script>
-    <script type="module" src="./src/main.js?v=11"></script>
+    <script type="module" src="./src/main.js?v=13"></script>
   </body>
 </html>

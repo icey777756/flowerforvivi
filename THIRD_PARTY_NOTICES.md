@@ -37,7 +37,7 @@ This project bundles the following third-party software and model assets.
 
 ## Noto Serif SC (web font subset)
 
-- Font: Noto Serif SC, regular 400 (subset of 195 Chinese glyphs used by the site)
+- Font: Noto Serif SC, regular 400 (subset of 254 Chinese glyphs used by the site)
 - Copyright: © 2012 Google Inc.
 - License: SIL Open Font License 1.1
 - Source: https://github.com/notofonts/noto-cjk
